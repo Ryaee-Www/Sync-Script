@@ -3,6 +3,7 @@ import string
 import os
 import json
 from wx.core import BoxSizer, EXPAND, HORIZONTAL, LEFT, NB_FIXEDWIDTH, Right, Size, StaticText
+import Sync
 
 allTags = ["Space Engineer","SE Blue Prints","Stellaris","ST MOD","Skyrim","Civ V", "Banished"]
 
@@ -134,7 +135,7 @@ class menuChoiceBook(wx.Choicebook):
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
         font.SetPointSize(9)
         
-        self.initialize(JsonData)
+        self.initFromJson(JsonData)
         self.win = wx.Panel(self)
         PanelSizer = BoxSizer(wx.HORIZONTAL)
         LeftSizer = BoxSizer(wx.VERTICAL)
@@ -182,7 +183,7 @@ class menuChoiceBook(wx.Choicebook):
         self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGING, self.OnPageChanging)
 
-    def initialize(self,JsonData):
+    def initFromJson(self,JsonData):#TODO - hardcoded
 
         self.SERemote = JsonData['directory'][0]['remote']#SPACE ENGINEER
         self.SELocal = JsonData['directory'][0]['local']
@@ -214,6 +215,7 @@ class menuChoiceBook(wx.Choicebook):
                     [self.C5Remote,self.C5Local],
                     [self.BNRemote,self.BNLocal]]
 
+    #update menu book
     def OnPageChanged(self, event):
         self.CurrentSelection = event.GetSelection()
         self.RemoteEntry.Clear()
@@ -222,15 +224,16 @@ class menuChoiceBook(wx.Choicebook):
         self.LocalEntry.write(self.JsonData['directory'][self.CurrentSelection]['local'])
         
         event.Skip()
-
+        
+    #update menu book changing...
     def OnPageChanging(self, event):
         self.memoryData[event.GetSelection()][0] = self.RemoteEntry.GetValue()
         self.memoryData[event.GetSelection()][1] = self.LocalEntry.GetValue()
         dlg = wx.MessageDialog(self,'Do you want to save the modification?\nNotice that this will not modify the config file.',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
-        if(dlg.ShowModal ()==wx.ID_YES):
-            self.log.WriteText("Saved: %s and %s" %(self.memoryData[event.GetSelection()][0],self.memoryData[event.GetSelection()][1]))
+        #if(dlg.ShowModal ()==wx.ID_YES):
+           # self.log.WriteText("Saved: %s and %s" %(self.memoryData[event.GetSelection()][0],self.memoryData[event.GetSelection()][1]))
         event.Skip()
 
     def browseFile(self,event):
@@ -242,7 +245,7 @@ class menuChoiceBook(wx.Choicebook):
 
         # Only destroy a dialog after you're done with it.
         dlg.Destroy()
-
+    #save browsed file
     def saveFile(self,event):
         dlg = wx.MessageDialog(self,'Do you want to save the modification?\nNotice that this will not modify the config file.',
                                'Notice',
@@ -257,6 +260,7 @@ class menuChoiceBook(wx.Choicebook):
                 self.JsonData['directory'][0]['local'] = self.memoryData[0][1]
                 self.log.WriteText("Saved: %s and %s" %(self.memoryData[0][0],self.memoryData[0][1]))
 
+    
     def saveAllFile(self,event):
         dlg = wx.MessageDialog(self,'Do you want to save the modification?\nNotice that this will not modify the config file.',
                                'Notice',

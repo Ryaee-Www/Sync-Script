@@ -55,11 +55,11 @@ def addFile(newZip, sourceLoc,lengthBaseRoot):
                 newZip.write(os.path.join(sourceLoc,i),absPath[lengthBaseRoot:len(os.path.join(sourceLoc,i))],zipfile.ZIP_DEFLATED)
 
 
+if __name__ == '__main__':
+    with open ("C:\\Users\\Raymond\\Documents\\Sync Script\\config.json")as SSHConfig:
+        SSHDetail = json.load(SSHConfig)
+    print(SSHDetail['sourceDir'])
 
-with open ("C:\\Users\\Raymond\\Documents\\Sync Script\\SSH.json")as SSHConfig:
-    SSHDetail = json.load(SSHConfig)
-print(SSHDetail['sourceDir'])
+    zipName = input("Please Enter your desired zipfile name: ")
 
-zipName = input("Please Enter your desired zipfile name: ")
-
-doSync(SSHDetail['sourceDir'] + "\\" +zipName + ".zip",SSHDetail)
+    doSync(SSHDetail['sourceDir'] + "\\" +zipName + ".zip",SSHDetail)

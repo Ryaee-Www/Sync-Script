@@ -1,0 +1,9 @@
+{
+    "host": "host",
+    "port": 22, 
+    "username": "username", 
+    "password": "password",
+    "directory": [
+        {"name": "name", "remote": "/home/ubuntu/", "local": "C:\\desktop"}
+    ]
+}

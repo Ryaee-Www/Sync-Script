@@ -86,14 +86,19 @@ class TestGUIFrame(wx.Frame):
         ThridMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
         saveBtn = wx.Button(panel, label = "Apply")
         saveBtn.Bind(wx.EVT_BUTTON,self.applyChange)
-        confirmBtn = wx.Button(panel, label = "Confirm")
-        cancelBtn = wx.Button(panel, label = "Cancel")
-        cancelBtn.Bind(wx.EVT_BUTTON,self.closeWindow)
+        pushBtn = wx.Button(panel, label = "push")
+        pullBtn = wx.Button(panel, label = "pull")
+        #cancelBtn = wx.Button(panel, label = "Cancel")
+        #cancelBtn.Bind(wx.EVT_BUTTON,self.closeWindow)
 
         ThridMajorSizer.Add(saveBtn,flag = wx.RIGHT, border = 5)
-        ThridMajorSizer.Add(confirmBtn,flag = wx.RIGHT,border = 5)
-        ThridMajorSizer.Add(cancelBtn)
-        
+        ThridMajorSizer.Add(pushBtn,flag = wx.RIGHT,border = 5)
+        ThridMajorSizer.Add(pullBtn,flag = wx.RIGHT,border = 5)
+        #ThridMajorSizer.Add(cancelBtn)
+
+        #pushBtn.Bind(wx.EVT_BUTTON,TODO: push to remote)
+        #pullBtn.Bind(wx.EVT_BUTTON,TODO: pull from remote)
+        #saveBtn.Bind(wx.EVT_BUTTON,TODO: write to json)
         
         ArchSizer.Add(FirstMajorSizer)
         ArchSizer.Add(self.mainChocieBook,flag = wx.EXPAND|wx.RIGHT|wx.LEFT|wx.TOP,border = 10)

@@ -176,15 +176,18 @@ class menuChoiceBook(wx.Choicebook):
         self.LocalEntry.write(JsonData['directory'][0]['local'])
         # Now make a bunch of panels for the choice book
         count = 0
-        for name in allTags:
+        for name in JsonData['directory']:
             count += 1
-            self.AddPage(self.win, name)
+            self.AddPage(self.win, name['name'])
 
         self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGING, self.OnPageChanging)
 
     def initFromJson(self,JsonData):#TODO - hardcoded
-
+        self.memoryData = []
+        for addr in JsonData['directory']:
+            self.memoryData.append([addr['remote'],addr['local']])
+        '''
         self.SERemote = JsonData['directory'][0]['remote']#SPACE ENGINEER
         self.SELocal = JsonData['directory'][0]['local']
 
@@ -214,7 +217,7 @@ class menuChoiceBook(wx.Choicebook):
                     [self.SKRemote,self.SKLocal],
                     [self.C5Remote,self.C5Local],
                     [self.BNRemote,self.BNLocal]]
-
+        '''
     #update menu book
     def OnPageChanged(self, event):
         self.CurrentSelection = event.GetSelection()

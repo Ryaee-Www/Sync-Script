@@ -4,7 +4,7 @@ import os
 import zipfile
 import json
 
-def doSync(zipFileLoc,SSHDetail):
+def doUpload(zipFileLoc,SSHDetail):
     newZip = zipfile.ZipFile(zipFileLoc,mode = 'w')
     try:
         addFile(newZip, SSHDetail['sourceDir'],len(SSHDetail['sourceDir']))
@@ -54,6 +54,8 @@ def addFile(newZip, sourceLoc,lengthBaseRoot):
                 #put in zip file with proper sub directory, pop unrelated system file path
                 newZip.write(os.path.join(sourceLoc,i),absPath[lengthBaseRoot:len(os.path.join(sourceLoc,i))],zipfile.ZIP_DEFLATED)
 
+def test(a, b):
+    return "inprogress"
 
 if __name__ == '__main__':
     with open ("C:\\Users\\Raymond\\Documents\\Sync Script\\config.json")as SSHConfig:
@@ -62,4 +64,4 @@ if __name__ == '__main__':
 
     zipName = input("Please Enter your desired zipfile name: ")
 
-    doSync(SSHDetail['sourceDir'] + "\\" +zipName + ".zip",SSHDetail)
+    doUpload(SSHDetail['sourceDir'] + "\\" +zipName + ".zip",SSHDetail)

@@ -95,9 +95,9 @@ class TestGUIFrame(wx.Frame):
         ThridMajorSizer.Add(pushBtn,flag = wx.RIGHT,border = 5)
         ThridMajorSizer.Add(pullBtn,flag = wx.RIGHT,border = 5)
         #ThridMajorSizer.Add(cancelBtn)
-
-        #pushBtn.Bind(wx.EVT_BUTTON,TODO: push to remote)
-        #pullBtn.Bind(wx.EVT_BUTTON,TODO: pull from remote)
+        wx.MessageDialog
+        pushBtn.Bind(wx.EVT_BUTTON,self.doPush)
+        pullBtn.Bind(wx.EVT_BUTTON,self.doPull)
         #saveBtn.Bind(wx.EVT_BUTTON,TODO: write to json)
         
         ArchSizer.Add(FirstMajorSizer)
@@ -129,8 +129,18 @@ class TestGUIFrame(wx.Frame):
         self.allDef = self.mainChocieBook.JsonData
         with open(f"{self.currentDirectory}\\config.json",'w') as SSHRaw:
             SSHRaw.write(json.dumps(self.allDef, indent=2))
-        
-
+    def doPush(self, event):
+        #TODO: change to upload file
+        dlg = wx.MessageDialog(self,f'{Sync.test(1,3)}',
+                               'Notice',
+                               wx.YES_NO | wx.ICON_INFORMATION)
+        dlg.ShowModal ()
+    def doPull(self,event):
+        #TODO: change to download file
+        dlg = wx.MessageDialog(self,f'{Sync.test(1,3)}',
+                               'Notice',
+                               wx.YES_NO | wx.ICON_INFORMATION)
+        dlg.ShowModal ()
 
 class menuChoiceBook(wx.Choicebook):
     def __init__(self, parent, log, JsonData):
@@ -268,7 +278,6 @@ class menuChoiceBook(wx.Choicebook):
                 self.JsonData['directory'][0]['local'] = self.memoryData[0][1]
                 self.log.WriteText("Saved: %s and %s" %(self.memoryData[0][0],self.memoryData[0][1]))
 
-    
     def saveAllFile(self,event):
         dlg = wx.MessageDialog(self,'Do you want to save the modification?\nNotice that this will not modify the config file.',
                                'Notice',
@@ -280,7 +289,7 @@ class menuChoiceBook(wx.Choicebook):
                 self.log.WriteText("Saved: %s and %s" %(self.memoryData[i][0],self.memoryData[i][1]))
             self.log.WriteText("All modification has been saved")
         
-        
+
 
 if __name__ == '__main__':
     app = wx.App()

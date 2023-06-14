@@ -4,64 +4,83 @@ import os
 import zipfile
 import json
 
-def doUpload(zipFileLoc,SSHDetail):
-    newZip = zipfile.ZipFile(zipFileLoc,mode = 'w')
-    try:
-        addFile(newZip, SSHDetail['sourceDir'],len(SSHDetail['sourceDir']))
-        print ("All compression succeed, closing file")
-        newZip.close()
-        upload_file(zipFileLoc,SSHDetail)
-    except Exception:
-        print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
-        newZip.close()
 
-def upload_file(sourceFile,SSHDetail):        
-    host = SSHDetail['host']  #Server ip address
-    port = SSHDetail['port']  # port
-    username = SSHDetail['username']  # ssh userID
-    password = SSHDetail['password']  # password
-    destDir = SSHDetail['destDir']
+class Synchronizer:
+    def __init__(self, SSHDetail=None):
+        self.ssh_client = paramiko.SSHClient()
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
+        if SSHDetail is not None:
+            self.host = SSHDetail['host']  # Server ip address
+            self.port = SSHDetail['port']  # port
+            self.username = SSHDetail['username']  # ssh userID
+            self.password = SSHDetail['password']  # password
+            self.destDir = SSHDetail['destDir']
+        else:
+            self.host = None  # Server ip address
+            self.port = None  # port
+            self.username = None  # ssh userID
+            self.password = None  # password
+            self.destDir = None
 
-    print("opening connection to %s\nClaiming user %s" %(host,username))
-    ssh_client.connect(host, port, username, password)
-    scpclient = SCPClient(ssh_client.get_transport(),socket_timeout=15.0)
+    def updateConfig(self, SSHDetail):
+        self.host = SSHDetail['host']  # Server ip address
+        self.port = SSHDetail['port']  # port
+        self.username = SSHDetail['username']  # ssh userID
+        self.password = SSHDetail['password']  # password
+        self.destDir = SSHDetail['destDir']
 
-    try:
-        print("uploading file to %s" %destDir)
-        scpclient.put(sourceFile, destDir)
-    except FileNotFoundError as e:
-        print(e)
-        print("File not found: %s" %sourceFile)
-    else:
-        print("upload Successful")
-    ssh_client.close()
+    def doUpload(self, zipFileLoc):
+        newZip = zipfile.ZipFile(zipFileLoc, mode='w')
+        try:
+            self.__addFile__(newZip, SSHDetail['sourceDir'], len(SSHDetail['sourceDir']))
+            print("All compression succeed, closing file")
+            newZip.close()
+            self.__uploadFile__(zipFileLoc)
+        except Exception:
+            print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
+            newZip.close()
 
+    def __uploadFile__(self, sourceFile):
 
+        print("opening connection to %s\nClaiming user %s" % (self.host, self.username))
+        self.ssh_client.connect(self.host, self.port, self.username, self.password)
+        scpclient = SCPClient(self.ssh_client.get_transport(), socket_timeout=15.0)
 
-def addFile(newZip, sourceLoc,lengthBaseRoot):
-    allFile = os.listdir(sourceLoc)
-    for i in allFile:
-        if i != "newZip.zip":#do not add itself to zip
-            
-            if os.path.isdir(os.path.join(sourceLoc, i)):#if is a directory, go recursive
-                addFile(newZip, os.path.join(sourceLoc, i),lengthBaseRoot)
-            else:
-                print("compressing %s" %i) 
-                absPath = os.path.join(sourceLoc,i)# current file path in system directory
-                #put in zip file with proper sub directory, pop unrelated system file path
-                newZip.write(os.path.join(sourceLoc,i),absPath[lengthBaseRoot:len(os.path.join(sourceLoc,i))],zipfile.ZIP_DEFLATED)
+        try:
+            print("uploading file to %s" % self.destDir)
+            scpclient.put(sourceFile, self.destDir)
+        except FileNotFoundError as e:
+            print(e)
+            print("File not found: %s" % sourceFile)
+        else:
+            print("upload Successful")
+        self.ssh_client.close()
+
+    def __addFile__(self, newZip, sourceLoc, lengthBaseRoot):
+        allFile = os.listdir(sourceLoc)
+        for i in allFile:
+            if i != "newZip.zip":  # do not add itself to zip
+
+                if os.path.isdir(os.path.join(sourceLoc, i)):  # if is a directory, go recursive
+                    self.__addFile__(newZip, os.path.join(sourceLoc, i), lengthBaseRoot)
+                else:
+                    print("compressing %s" % i)
+                    absPath = os.path.join(sourceLoc, i)  # current file path in system directory
+                    # put in zip file with proper sub directory, pop unrelated system file path
+                    newZip.write(os.path.join(sourceLoc, i), absPath[lengthBaseRoot:len(os.path.join(sourceLoc, i))],
+                                 zipfile.ZIP_DEFLATED)
+
 
 def test(a, b):
     return "inprogress"
 
+
 if __name__ == '__main__':
-    with open ("C:\\Users\\Raymond\\Documents\\Sync Script\\config.json")as SSHConfig:
+    with open("C:\\Users\\Raymond\\Documents\\Sync Script\\config.json") as SSHConfig:
         SSHDetail = json.load(SSHConfig)
     print(SSHDetail['sourceDir'])
 
     zipName = input("Please Enter your desired zipfile name: ")
 
-    doUpload(SSHDetail['sourceDir'] + "\\" +zipName + ".zip",SSHDetail)
+    doUpload(SSHDetail['sourceDir'] + "\\" + zipName + ".zip", SSHDetail)

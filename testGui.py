@@ -46,9 +46,11 @@ class TestGUIFrame(wx.Frame):
         panel = wx.Panel(self)
         self.log = log
 
+
         ArchSizer = wx.BoxSizer(wx.VERTICAL)
 
         FirstMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
+
         ##ServerIp, userName, timeOut instruction:
         FirstRowColumn1 = wx.BoxSizer(wx.VERTICAL)
         # serverIP Instruction
@@ -96,7 +98,7 @@ class TestGUIFrame(wx.Frame):
         FirstMajorSizer.Add(FirstRowColumn3, flag=wx.LEFT | wx.RIGHT | wx.TOP, border=10)
         FirstMajorSizer.Add(FirstRowColumn4, flag=wx.RIGHT, border=10)
 
-        # TODO choice book class init
+        # ** choice book class init
         # SecondMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.mainChocieBook = menuChoiceBook(panel, log, allConfig)
         # SecondMajorSizer.Add(mainChocieBook,flag = wx.EXPAND)
@@ -113,13 +115,19 @@ class TestGUIFrame(wx.Frame):
         ThridMajorSizer.Add(pushBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(pullBtn, flag=wx.RIGHT, border=5)
 
+        warpStaticBox = wx.StaticBox(panel)
+        warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
+        warpStaticSizer.Add(self.mainChocieBook)
+        #warpStaticSizer.Add(ThridMajorSizer)
+
+
         # ThridMajorSizer.Add(cancelBtn)
         pushBtn.Bind(wx.EVT_BUTTON, self.doPush)
         pullBtn.Bind(wx.EVT_BUTTON, self.doPull)
         # saveBtn.Bind(wx.EVT_BUTTON,TODO: write to json)
 
         ArchSizer.Add(FirstMajorSizer)
-        ArchSizer.Add(self.mainChocieBook, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
+        ArchSizer.Add(warpStaticSizer, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
         ArchSizer.Add(ThridMajorSizer, flag=wx.ALIGN_LEFT | wx.BOTTOM | wx.LEFT, border=10)
 
         panel.SetSizer(ArchSizer)

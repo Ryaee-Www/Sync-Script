@@ -83,4 +83,4 @@ if __name__ == '__main__':
 
     zipName = input("Please Enter your desired zipfile name: ")
 
-    doUpload(SSHDetail['sourceDir'] + "\\" + zipName + ".zip", SSHDetail)
+    Synchronizer.doUpload(SSHDetail['sourceDir'] + "\\" + zipName + ".zip", SSHDetail)

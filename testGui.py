@@ -6,7 +6,9 @@ from wx.core import BoxSizer, EXPAND, HORIZONTAL, LEFT, NB_FIXEDWIDTH, Right, Si
 import Sync
 
 allTags = ["Space Engineer", "SE Blue Prints", "Stellaris", "ST MOD", "Skyrim", "Civ V", "Banished"]
-
+MEMORY_INDEX_NAME = 0
+MEMORY_INDEX_REMOTE = 1
+MEMORY_INDEX_LOCAL = 2
 CURRENT_DIRECTORY = os.getcwd()
 class Log:
     def WriteText(self, text):
@@ -26,8 +28,8 @@ class TestGUIFrame(wx.Frame):
         self.currentDirectory = CURRENT_DIRECTORY
         if os.path.exists(f"{self.currentDirectory}\\config.json"):
             with open(f"{self.currentDirectory}\\config.json") as SSHRaw:
-                allConfig = json.load(SSHRaw)
-                self.allDef = allConfig
+                jsonData = json.load(SSHRaw)
+                self.allDef = jsonData
         else:
             content = {
                 {
@@ -100,12 +102,12 @@ class TestGUIFrame(wx.Frame):
 
         # ** choice book class init
         # SecondMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.mainChocieBook = menuChoiceBook(panel, log, allConfig)
+        self.mainChocieBook = menuChoiceBook(panel, log, jsonData)
         # SecondMajorSizer.Add(mainChocieBook,flag = wx.EXPAND)
         # confirm reject sizer
         ThridMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
         saveBtn = wx.Button(panel, label="Apply")
-        saveBtn.Bind(wx.EVT_BUTTON, self.applyChange)
+
         pushBtn = wx.Button(panel, label="push")
         pullBtn = wx.Button(panel, label="pull")
         # cancelBtn = wx.Button(panel, label = "Cancel")
@@ -115,7 +117,7 @@ class TestGUIFrame(wx.Frame):
         ThridMajorSizer.Add(pushBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(pullBtn, flag=wx.RIGHT, border=5)
 
-        warpStaticBox = wx.StaticBox(panel)
+        warpStaticBox = wx.StaticBox(panel, label = "preset",style = wx.BORDER_STATIC)
         warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
         warpStaticSizer.Add(self.mainChocieBook)
         #warpStaticSizer.Add(ThridMajorSizer)
@@ -124,7 +126,7 @@ class TestGUIFrame(wx.Frame):
         # ThridMajorSizer.Add(cancelBtn)
         pushBtn.Bind(wx.EVT_BUTTON, self.doPush)
         pullBtn.Bind(wx.EVT_BUTTON, self.doPull)
-        # saveBtn.Bind(wx.EVT_BUTTON,TODO: write to json)
+        saveBtn.Bind(wx.EVT_BUTTON, self.applyChange)
 
         ArchSizer.Add(FirstMajorSizer)
         ArchSizer.Add(warpStaticSizer, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
@@ -132,7 +134,7 @@ class TestGUIFrame(wx.Frame):
 
         panel.SetSizer(ArchSizer)
         ArchSizer.SetSizeHints(self)
-        self.readFromJson(allConfig)
+        self.readFromJson(jsonData)
         self.mainChocieBook.win.Show()
         self.Show()
 
@@ -189,13 +191,17 @@ class TestGUIFrame(wx.Frame):
 class menuChoiceBook(wx.Choicebook):
     def __init__(self, parent, log, JsonData):
         wx.Choicebook.__init__(self, parent)
+        self.optionCount = 0 #how many presets present in the menu
         self.log = log
-        self.JsonData = JsonData
+        self.JsonData = JsonData #Json Data
+        self.currentSelection = 0 #record current index choosen, int
+        self.initFromJson(self.JsonData)
+        self.win = wx.Panel(self)
+
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
         font.SetPointSize(9)
 
-        self.initFromJson(JsonData)
-        self.win = wx.Panel(self)
+
         PanelSizer = BoxSizer(wx.HORIZONTAL)
         LeftSizer = BoxSizer(wx.VERTICAL)
 
@@ -231,22 +237,23 @@ class menuChoiceBook(wx.Choicebook):
         PanelSizer.Add(RightSizer, flag=wx.EXPAND | wx.RIGHT, border=10)
         self.win.SetSizer(PanelSizer)
 
-        self.CurrentSelection = 0
+
         self.RemoteEntry.write(JsonData['directory'][0]['remote'])
         self.LocalEntry.write(JsonData['directory'][0]['local'])
         # Now make a bunch of panels for the choice book
-        count = 0
         for name in JsonData['directory']:
-            count += 1
+            self.optionCount += 1
             self.AddPage(self.win, name['name'])
+        self.AddPage(self.win, "create New Preset")
 
-        self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGING, self.OnPageChanging)
+        self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGED, self.OnPageChanged)
 
-    def initFromJson(self, JsonData):  # TODO - hardcoded
+
+    def initFromJson(self, JsonData):
         self.memoryData = []
         for addr in JsonData['directory']:
-            self.memoryData.append([addr['remote'], addr['local']])
+            self.memoryData.append([addr["name"], addr['remote'], addr['local']])
         '''
         self.SERemote = JsonData['directory'][0]['remote']#SPACE ENGINEER
         self.SELocal = JsonData['directory'][0]['local']
@@ -281,25 +288,51 @@ class menuChoiceBook(wx.Choicebook):
 
     # update menu book
     def OnPageChanged(self, event):
-        self.CurrentSelection = event.GetSelection()
-        self.RemoteEntry.Clear()
-        self.RemoteEntry.write(self.JsonData['directory'][self.CurrentSelection]['remote'])
-        self.LocalEntry.Clear()
-        self.LocalEntry.write(self.JsonData['directory'][self.CurrentSelection]['local'])
-
-        event.Skip()
+        self.currentSelection = event.GetSelection()
+        print(f"IDonPageChange: {event.GetSelection()}")
+        if(self.currentSelection == self.optionCount):#if create new
+            self.RemoteEntry.Clear()
+            self.LocalEntry.Clear()
+        else:
+            self.RemoteEntry.Clear()
+            self.RemoteEntry.write(self.JsonData['directory'][self.currentSelection]['remote'])
+            self.LocalEntry.Clear()
+            self.LocalEntry.write(self.JsonData['directory'][self.currentSelection]['local'])
 
     # update menu book changing...
     def OnPageChanging(self, event):
-        self.memoryData[event.GetSelection()][0] = self.RemoteEntry.GetValue()
-        self.memoryData[event.GetSelection()][1] = self.LocalEntry.GetValue()
-        dlg = wx.MessageDialog(self,
-                               'Do you want to save the modification?\nNotice that this will not modify the config file.',
-                               'Notice',
-                               wx.YES_NO | wx.ICON_INFORMATION)
-        # if(dlg.ShowModal ()==wx.ID_YES):
-        # self.log.WriteText("Saved: %s and %s" %(self.memoryData[event.GetSelection()][0],self.memoryData[event.GetSelection()][1]))
-        event.Skip()
+
+        if (event.GetSelection() >= self.optionCount ):#newpage
+            #TODO now this if always trigger modify popup, change memdata to have dummy page
+            dlg = wx.MessageDialog(self,
+                                   'Do you want to save the new preset?\nNotice that this will not modify the config file.',
+                                   'Notice',
+                                   wx.YES_NO | wx.ICON_INFORMATION)
+            if (dlg.ShowModal() == wx.ID_YES):
+                self.memoryData.append(["name", self.RemoteEntry.GetValue(), self.LocalEntry.GetValue()])
+                self.saveFileNoPop(None)
+
+        elif(self.memoryData[event.GetOldSelection()][MEMORY_INDEX_REMOTE] != self.RemoteEntry.GetValue() or
+                self.memoryData[event.GetOldSelection()][MEMORY_INDEX_LOCAL] != self.LocalEntry.GetValue()):
+                #page changed
+
+            dlg = wx.MessageDialog(self,
+                                   'Do you want to save the modification?\nNotice that this will not modify the config file.',
+                                   'Notice',
+                                   wx.YES_NO | wx.ICON_INFORMATION)
+            if (dlg.ShowModal() == wx.ID_YES):
+                self.saveFileNoPop(None)
+
+        else:#memory == textbox
+
+            self.memoryData[event.GetOldSelection()][MEMORY_INDEX_REMOTE] = self.RemoteEntry.GetValue()
+            self.memoryData[event.GetOldSelection()][MEMORY_INDEX_LOCAL] = self.LocalEntry.GetValue()
+
+
+
+        # self.log.WriteText("Saved: %s and %s" %(self.memoryData[event.GetSelection()][MEMORY_INDEX_REMOTE],
+        # self.memoryData[event.GetSelection()][1]))
+
 
     def browseFile(self, event):
         dlg = wx.DirDialog(None, "Choose input directory", "",
@@ -314,20 +347,65 @@ class menuChoiceBook(wx.Choicebook):
     # save browsed file
     def saveFile(self, event):
         dlg = wx.MessageDialog(self,
-                               'Do you want to save the modification?\nNotice that this will not modify the config file.',
+                               'Do you want to save the modification?\nNotice that this will not modify the configs.',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
-        if (dlg.ShowModal() == wx.ID_YES):
-            try:
-                self.JsonData['directory'][self.CurrentSelection]['remote'] = self.memoryData[self.CurrentSelection][0]
-                self.JsonData['directory'][self.CurrentSelection]['local'] = self.memoryData[self.CurrentSelection][1]
-                self.log.WriteText("Saved: %s and %s" % (
-                self.memoryData[self.CurrentSelection][0], self.memoryData[self.CurrentSelection][1]))
-            except Exception:  # upon first run
-                self.JsonData['directory'][0]['remote'] = self.memoryData[0][0]
-                self.JsonData['directory'][0]['local'] = self.memoryData[0][1]
-                self.log.WriteText("Saved: %s and %s" % (self.memoryData[0][0], self.memoryData[0][1]))
+        print(self.currentSelection, self.optionCount)
 
+        if (dlg.ShowModal() == wx.ID_YES):
+            if (self.currentSelection == self.optionCount):
+                newPreset = {
+                    'name': "name",
+                    "remote": self.RemoteEntry.GetValue(),
+                    "local": self.LocalEntry.GetValue()
+                }
+                self.JsonData['directory'].append(newPreset)
+                self.saveChange()
+                self.updateMemory()
+                self.log.WriteText(f"Saved: {self.RemoteEntry.GetValue()} and {self.LocalEntry.GetValue()}" )
+                # update memory data
+
+
+            else:
+                try:
+                    self.JsonData['directory'][self.currentSelection]['remote'] = self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE]
+                    self.JsonData['directory'][self.currentSelection]['local'] = self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]
+                    self.log.WriteText("Saved: %s and %s" % (
+                        self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE],
+                        self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]))
+
+                except Exception:  # upon first run#TODO try understand this shitty code
+                    self.JsonData['directory'][0]['remote'] = self.memoryData[0][MEMORY_INDEX_REMOTE]
+                    self.JsonData['directory'][0]['local'] = self.memoryData[0][MEMORY_INDEX_LOCAL]
+                    self.log.WriteText("Saved: %s and %s" % (self.memoryData[0][MEMORY_INDEX_REMOTE],
+                                                             self.memoryData[0][MEMORY_INDEX_LOCAL]))
+    def saveFileNoPop(self, event):
+        if (self.currentSelection == self.optionCount):
+            newPreset = {
+                'name': "name",
+                "remote": self.RemoteEntry.GetValue(),
+                "local": self.LocalEntry.GetValue()
+            }
+            self.JsonData['directory'].append(newPreset)
+            self.saveChange()
+            self.updateMemory()
+            self.log.WriteText(f"Saved: {self.RemoteEntry.GetValue()} and {self.LocalEntry.GetValue()}" )
+            # update memory data
+
+
+        else:
+            try:
+                self.JsonData['directory'][self.currentSelection]['remote'] = self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE]
+                self.JsonData['directory'][self.currentSelection]['local'] = self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]
+                self.log.WriteText("Saved: %s and %s" % (
+                    self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE],
+                    self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]))
+
+            except Exception:  # upon first run#TODO try understand this shitty code
+                self.JsonData['directory'][0]['remote'] = self.memoryData[0][MEMORY_INDEX_REMOTE]
+                self.JsonData['directory'][0]['local'] = self.memoryData[0][MEMORY_INDEX_LOCAL]
+                self.log.WriteText("Saved: %s and %s" % (self.memoryData[0][MEMORY_INDEX_REMOTE],
+                                                         self.memoryData[0][MEMORY_INDEX_LOCAL]))
     def saveAllFile(self, event):
         dlg = wx.MessageDialog(self,
                                'Do you want to save the modification?\nNotice that this will not modify the config file.',
@@ -335,11 +413,24 @@ class menuChoiceBook(wx.Choicebook):
                                wx.YES_NO | wx.ICON_INFORMATION)
         if (dlg.ShowModal() == wx.ID_YES):
             for i in range(0, len(self.memoryData)):
-                self.JsonData['directory'][i]['remote'] = self.memoryData[i][0]
-                self.JsonData['directory'][i]['local'] = self.memoryData[i][1]
-                self.log.WriteText("Saved: %s and %s" % (self.memoryData[i][0], self.memoryData[i][1]))
+                self.JsonData['directory'][i]['remote'] = self.memoryData[i][MEMORY_INDEX_REMOTE]
+                self.JsonData['directory'][i]['local'] = self.memoryData[i][MEMORY_INDEX_LOCAL]
+                self.log.WriteText("Saved: %s and %s" % (self.memoryData[i][MEMORY_INDEX_REMOTE],
+                                                         self.memoryData[i][MEMORY_INDEX_LOCAL]))
             self.log.WriteText("All modification has been saved")
 
+    def saveChange(self):
+        with open(f"{CURRENT_DIRECTORY}\\config.json", 'w') as SSHRaw:
+            SSHRaw.write(json.dumps(self.JsonData, indent=2))
+
+    def updateMemory(self):
+        with open(f"{CURRENT_DIRECTORY}\\config.json") as jsonFile:
+            jsonData = json.load(jsonFile)
+            self.JsonData = jsonData
+        self.initFromJson(self.JsonData)
+        self.SetPageText(self.optionCount, self.JsonData['directory'][self.optionCount]['name'])
+        self.optionCount+=1
+        self.AddPage(self.win, "create New Preset")
 
 if __name__ == '__main__':
     app = wx.App()

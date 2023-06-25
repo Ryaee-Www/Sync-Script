@@ -15,7 +15,7 @@ class Synchronizer:
             self.port = SSHDetail['port']  # port
             self.username = SSHDetail['username']  # ssh userID
             self.password = SSHDetail['password']  # password
-            self.destDir = SSHDetail['destDir']
+            self.destDir = SSHDetail['directory']
         else:
             self.host = None  # Server ip address
             self.port = None  # port
@@ -30,7 +30,7 @@ class Synchronizer:
         self.password = SSHDetail['password']  # password
         self.destDir = SSHDetail['destDir']
 
-    def doUpload(self, zipFileLoc):
+    def doUpload(self, zipFileLoc):#TODO change to sftp, remove compress feature
         newZip = zipfile.ZipFile(zipFileLoc, mode='w')
         try:
             self.__addFile__(newZip, SSHDetail['sourceDir'], len(SSHDetail['sourceDir']))
@@ -70,8 +70,19 @@ class Synchronizer:
                     # put in zip file with proper sub directory, pop unrelated system file path
                     newZip.write(os.path.join(sourceLoc, i), absPath[lengthBaseRoot:len(os.path.join(sourceLoc, i))],
                                  zipfile.ZIP_DEFLATED)
+    def connect(self):
+        self.ssh_client.connect(self.host, username=self.username, password=self.password, allow_agent=True)
 
-
+    def runCommand(self, command):
+        print("SyncScript: connecting to remote...")
+        stdin, stdout, stderr = self.ssh_client.exec_command(command)
+        for i in [stdout, stderr]:
+            output_lines = i.readlines()
+            if output_lines:
+                for lines in output_lines:
+                    print(f"remote: {lines.strip()}")
+        print("SyncScript: closing tunnel...")
+        self.ssh_client.close()
 def test(a, b):
     return "inprogress"
 

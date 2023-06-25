@@ -47,7 +47,7 @@ class TestGUIFrame(wx.Frame):
 
         panel = wx.Panel(self)
         self.log = log
-
+        self.sshClient = Sync.Synchronizer(self.allDef)
 
         ArchSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -170,19 +170,21 @@ class TestGUIFrame(wx.Frame):
             self.allDef["password"] = self.getPassword()
             with open(f"{CURRENT_DIRECTORY}\\config.json", 'w') as SSHRaw:
                 SSHRaw.write(json.dumps(self.allDef, indent=2))
+            self.sshClient = Sync.Synchronizer(self.allDef)
     def closeWindow(self, event):
         self.Close(True)
 
     def doPush(self, event):
         # TODO: change to upload file
-        dlg = wx.MessageDialog(self, f'{Sync.test(1, 3)}',
+        dlg = wx.MessageDialog(self, 'working in progress, do test',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         dlg.ShowModal()
 
+
     def doPull(self, event):
         # TODO: change to download file
-        dlg = wx.MessageDialog(self, f'{Sync.test(1, 3)}',
+        dlg = wx.MessageDialog(self, f'working in progress, do test',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         dlg.ShowModal()

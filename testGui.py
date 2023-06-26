@@ -45,9 +45,10 @@ class TestGUIFrame(wx.Frame):
             with open(f"{self.currentDirectory}\\config.json") as SSHRaw:
                 json.dump(content,SSHRaw)
 
+        #start initialize window
         panel = wx.Panel(self)
         self.log = log
-        self.sshClient = Sync.Synchronizer(self.allDef)
+
 
         ArchSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -137,6 +138,11 @@ class TestGUIFrame(wx.Frame):
         self.readFromJson(jsonData)
         self.mainChocieBook.win.Show()
         self.Show()
+        #finished initialize window
+
+        #deal with connection
+        self.sshClient = Sync.Synchronizer(self.allDef)
+        self.sshClient.connect()
 
     def readFromJson(self, SSHDetail):
         host = SSHDetail['host']  # Server ip address
@@ -170,8 +176,11 @@ class TestGUIFrame(wx.Frame):
             self.allDef["password"] = self.getPassword()
             with open(f"{CURRENT_DIRECTORY}\\config.json", 'w') as SSHRaw:
                 SSHRaw.write(json.dumps(self.allDef, indent=2))
+            self.sshClient.disconnect()
             self.sshClient = Sync.Synchronizer(self.allDef)
+            self.sshClient.connect()
     def closeWindow(self, event):
+        self.sshClient.disconnect()
         self.Close(True)
 
     def doPush(self, event):
@@ -179,8 +188,9 @@ class TestGUIFrame(wx.Frame):
         dlg = wx.MessageDialog(self, 'working in progress, do test',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
-        dlg.ShowModal()
-
+        if (dlg.ShowModal() == wx.ID_YES):
+            self.sshClient.doUpload(self.mainChocieBook.LocalEntry.GetValue(), self.mainChocieBook.RemoteEntry.GetValue())
+            print(self.mainChocieBook.LocalEntry.GetValue(), self.mainChocieBook.RemoteEntry.GetValue())
 
     def doPull(self, event):
         # TODO: change to download file
@@ -347,7 +357,7 @@ class menuChoiceBook(wx.Choicebook):
         dlg.Destroy()
 
     # save browsed file
-    def saveFile(self, event):
+    def saveFile(self, event):#TODO solve editing not saving files to config
         dlg = wx.MessageDialog(self,
                                'Do you want to save the modification?\nNotice that this will not modify the configs.',
                                'Notice',

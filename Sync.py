@@ -15,31 +15,47 @@ class Synchronizer:
             self.port = SSHDetail['port']  # port
             self.username = SSHDetail['username']  # ssh userID
             self.password = SSHDetail['password']  # password
-            self.destDir = SSHDetail['directory']
+            self.directory = SSHDetail['directory']
         else:
             self.host = None  # Server ip address
             self.port = None  # port
             self.username = None  # ssh userID
             self.password = None  # password
-            self.destDir = None
+            self.directory = None
 
     def updateConfig(self, SSHDetail):
         self.host = SSHDetail['host']  # Server ip address
         self.port = SSHDetail['port']  # port
         self.username = SSHDetail['username']  # ssh userID
         self.password = SSHDetail['password']  # password
-        self.destDir = SSHDetail['destDir']
+        self.directory = SSHDetail['directory']
 
-    def doUpload(self, zipFileLoc):#TODO change to sftp, remove compress feature
-        newZip = zipfile.ZipFile(zipFileLoc, mode='w')
-        try:
-            self.__addFile__(newZip, SSHDetail['sourceDir'], len(SSHDetail['sourceDir']))
-            print("All compression succeed, closing file")
-            newZip.close()
-            self.__uploadFile__(zipFileLoc)
-        except Exception:
-            print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
-            newZip.close()
+    def doUpload(self,localDir, RemoteDir):#TODO solve file path incorrect
+        localDir = localDir.replace('\\', '\\\\')
+        sftp = self.ssh_client.open_sftp()
+        for root, dirs, files in os.walk(localDir):
+            for file in files:
+                print(file)
+                sftp.put(file, RemoteDir)
+        #for root, dirs, files in os.walk(localDir):
+            #remote_root = RemoteDir + root.replace(localDir, '').replace('\\', '/')
+            #for directory in dirs:
+                #remote_directory = os.path.join(remote_root, directory)
+                #sftp.mkdir(remote_directory)
+            #for file in files:
+                #local_path = os.path.join(root, file)
+                #remote_path = os.path.join(remote_root, file)
+                #sftp.put(local_path, remote_path)
+
+        #newZip = zipfile.ZipFile(zipFileLoc, mode='w')
+        #try:
+            #self.__addFile__(newZip, SSHDetail['sourceDir'], len(SSHDetail['sourceDir']))
+            #print("All compression succeed, closing file")
+            #newZip.close()
+            #self.__uploadFile__(zipFileLoc)
+        #except Exception:
+            #print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
+            #newZip.close()
 
     def __uploadFile__(self, sourceFile):
 
@@ -72,6 +88,8 @@ class Synchronizer:
                                  zipfile.ZIP_DEFLATED)
     def connect(self):
         self.ssh_client.connect(self.host, username=self.username, password=self.password, allow_agent=True)
+    def disconnect(self):
+        self.ssh_client.close()
 
     def runCommand(self, command):
         print("SyncScript: connecting to remote...")
@@ -83,6 +101,7 @@ class Synchronizer:
                     print(f"remote: {lines.strip()}")
         print("SyncScript: closing tunnel...")
         self.ssh_client.close()
+
 def test(a, b):
     return "inprogress"
 

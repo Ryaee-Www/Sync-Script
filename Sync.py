@@ -31,12 +31,15 @@ class Synchronizer:
         self.directory = SSHDetail['directory']
 
     def doUpload(self,localDir, RemoteDir):#TODO solve file path incorrect
-        localDir = localDir.replace('\\', '\\\\')
+        #localDir = localDir.replace('\\', '\\\\')
         sftp = self.ssh_client.open_sftp()
         for root, dirs, files in os.walk(localDir):
             for file in files:
                 print(file)
-                sftp.put(file, RemoteDir)
+                lPath = os.path.join(root,file)
+                rPath = os.path.join(RemoteDir, file)
+                print(lPath)
+                sftp.put(lPath, rPath)
         #for root, dirs, files in os.walk(localDir):
             #remote_root = RemoteDir + root.replace(localDir, '').replace('\\', '/')
             #for directory in dirs:
@@ -46,16 +49,18 @@ class Synchronizer:
                 #local_path = os.path.join(root, file)
                 #remote_path = os.path.join(remote_root, file)
                 #sftp.put(local_path, remote_path)
+        '''
 
-        #newZip = zipfile.ZipFile(zipFileLoc, mode='w')
-        #try:
-            #self.__addFile__(newZip, SSHDetail['sourceDir'], len(SSHDetail['sourceDir']))
-            #print("All compression succeed, closing file")
-            #newZip.close()
-            #self.__uploadFile__(zipFileLoc)
-        #except Exception:
-            #print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
-            #newZip.close()
+        newZip = zipfile.ZipFile(localDir, mode='w')
+        try:
+            self.__addFile__(newZip, SSHDetail['sourceDir'], len(SSHDetail['sourceDir']))
+            print("All compression succeed, closing file")
+            newZip.close()
+            self.__uploadFile__(localDir)
+        except Exception:
+            print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
+            newZip.close()
+        '''
 
     def __uploadFile__(self, sourceFile):
 

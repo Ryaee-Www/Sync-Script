@@ -351,15 +351,16 @@ class menuChoiceBook(wx.Choicebook):
                            wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             self.log.WriteText('You selected: %s.\n' % dlg.GetPath())
+            self.LocalEntry.Clear()
             self.LocalEntry.write(dlg.GetPath())  # write to entry box
 
         # Only destroy a dialog after you're done with it.
         dlg.Destroy()
 
     # save browsed file
-    def saveFile(self, event):#TODO solve editing not saving files to config
+    def saveFile(self, event):
         dlg = wx.MessageDialog(self,
-                               'Do you want to save the modification?\nNotice that this will not modify the configs.',
+                               'Do you want to save the modification?\nNotice that this will modify the configs.',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         print(self.currentSelection, self.optionCount)
@@ -380,8 +381,11 @@ class menuChoiceBook(wx.Choicebook):
 
             else:
                 try:
-                    self.JsonData['directory'][self.currentSelection]['remote'] = self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE]
-                    self.JsonData['directory'][self.currentSelection]['local'] = self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]
+
+                    self.JsonData['directory'][self.currentSelection]['remote'] = self.RemoteEntry.GetValue()
+                    self.JsonData['directory'][self.currentSelection]['local'] = self.LocalEntry.GetValue()
+                    self.saveChange()
+                    self.updateMemory()
                     self.log.WriteText("Saved: %s and %s" % (
                         self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE],
                         self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]))

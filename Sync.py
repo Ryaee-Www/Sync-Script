@@ -30,16 +30,32 @@ class Synchronizer:
         self.password = SSHDetail['password']  # password
         self.directory = SSHDetail['directory']
 
-    def doUpload(self,localDir, RemoteDir):#TODO solve file path incorrect
+    def doUpload(self,localDir, RemoteDir):#TODO test multiple folder and folder with multiple file
         #localDir = localDir.replace('\\', '\\\\')
+        numDir = 0
+        numFile = 0
         sftp = self.ssh_client.open_sftp()
+
         for root, dirs, files in os.walk(localDir):
+
+            for dir in dirs:
+                numDir+=1
+                remote_dir = os.path.join(RemoteDir, os.path.relpath(os.path.join(root, dir), localDir))
+                print(f"makeing directory: {remote_dir}")
+                try:
+                    sftp.mkdir(remote_dir)
+                    print(f"Directory: {remote_dir} created.")
+                except IOError:
+                    print(f"The directory: {remote_dir} already exist.")
+
             for file in files:
-                print(file)
+                numFile+=1
                 lPath = os.path.join(root,file)
-                rPath = os.path.join(RemoteDir, file)
-                print(lPath)
+                rPath = os.path.join(RemoteDir, os.path.relpath(lPath, localDir)).replace('\\', '/')
+                print(f"moving file from local {lPath} to {self.username}@{self.host}:{rPath}")
                 sftp.put(lPath, rPath)
+        sftp.close()
+        return((numDir,numFile))
         #for root, dirs, files in os.walk(localDir):
             #remote_root = RemoteDir + root.replace(localDir, '').replace('\\', '/')
             #for directory in dirs:
@@ -61,6 +77,30 @@ class Synchronizer:
             print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
             newZip.close()
         '''
+    def doDownload(self,RemoteDir, localDir):
+        numDir = 0
+        numFile = 0
+        sftp = self.ssh_client.open_sftp()
+        for entry in sftp.listdir_attr(RemoteDir):
+            remote_file = RemoteDir + '/' + entry.filename
+            local_file = os.path.join(localDir, entry.filename)
+            remote_file = remote_file.replace("//", "/")
+            if entry.st_mode & 0o040000:  # If it's a directory
+                print(f"making folder{local_file}")
+                os.makedirs(local_file, exist_ok=True)
+                (newDir, newFile)=self.doDownload(remote_file, local_file)
+                numDir += newDir + 1
+                numFile += newFile
+            else:
+
+                print(f"Pulling {remote_file} from {self.username}@{self.host} to local at {local_file}")
+                sftp.get(remote_file, local_file)
+                numFile+=1
+
+        sftp.close()
+        return((numDir,numFile))
+
+
 
     def __uploadFile__(self, sourceFile):
 

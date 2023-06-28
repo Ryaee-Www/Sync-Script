@@ -189,15 +189,18 @@ class TestGUIFrame(wx.Frame):
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         if (dlg.ShowModal() == wx.ID_YES):
-            self.sshClient.doUpload(self.mainChocieBook.LocalEntry.GetValue(), self.mainChocieBook.RemoteEntry.GetValue())
-            print(self.mainChocieBook.LocalEntry.GetValue(), self.mainChocieBook.RemoteEntry.GetValue())
+            (numDir, numFile) = self.sshClient.doUpload(self.mainChocieBook.LocalEntry.GetValue(), self.mainChocieBook.RemoteEntry.GetValue())
+            print(f"Upload complete. From {numDir} directories pulled {numFile} files.")
 
     def doPull(self, event):
         # TODO: change to download file
         dlg = wx.MessageDialog(self, f'working in progress, do test',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
-        dlg.ShowModal()
+        if (dlg.ShowModal() == wx.ID_YES):
+            (numDir, numFile) = self.sshClient.doDownload(self.mainChocieBook.RemoteEntry.GetValue(),
+                                      self.mainChocieBook.LocalEntry.GetValue())
+            print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
 
 
 class menuChoiceBook(wx.Choicebook):

@@ -147,6 +147,10 @@ class Synchronizer:
         print("SyncScript: closing tunnel...")
         self.ssh_client.close()
 
+    def isActive(self):
+        transport = self.ssh_client.get_transport()
+        return transport is not None and transport.is_active()
+
 def test(a, b):
     return "inprogress"
 

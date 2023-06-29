@@ -4,6 +4,8 @@ import os
 import json
 from wx.core import BoxSizer, EXPAND, HORIZONTAL, LEFT, NB_FIXEDWIDTH, Right, Size, StaticText
 import Sync
+import paramiko
+import socket
 
 allTags = ["Space Engineer", "SE Blue Prints", "Stellaris", "ST MOD", "Skyrim", "Civ V", "Banished"]
 MEMORY_INDEX_NAME = 0
@@ -20,7 +22,7 @@ class Log:
 
 
 class TestGUIFrame(wx.Frame):
-    def __init__(self):
+    def __init__(self):#TODO notice change not applied
         super().__init__(parent=None, title='test GUI')
         # self.SetSize((460,250))
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
@@ -109,14 +111,16 @@ class TestGUIFrame(wx.Frame):
         ThridMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
         saveBtn = wx.Button(panel, label="Apply")
 
-        pushBtn = wx.Button(panel, label="push")
-        pullBtn = wx.Button(panel, label="pull")
+        self.pushBtn = wx.Button(panel, label="push")
+        self.pullBtn = wx.Button(panel, label="pull")
+        connectBtn = wx.Button(panel, label = "connect")
         # cancelBtn = wx.Button(panel, label = "Cancel")
         # cancelBtn.Bind(wx.EVT_BUTTON,self.closeWindow)
 
         ThridMajorSizer.Add(saveBtn, flag=wx.RIGHT, border=5)
-        ThridMajorSizer.Add(pushBtn, flag=wx.RIGHT, border=5)
-        ThridMajorSizer.Add(pullBtn, flag=wx.RIGHT, border=5)
+        ThridMajorSizer.Add(self.pushBtn, flag=wx.RIGHT, border=5)
+        ThridMajorSizer.Add(self.pullBtn, flag=wx.RIGHT, border=5)
+        ThridMajorSizer.Add(connectBtn, flag=wx.RIGHT, border=5)
 
         warpStaticBox = wx.StaticBox(panel, label = "preset",style = wx.BORDER_STATIC)
         warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
@@ -125,9 +129,12 @@ class TestGUIFrame(wx.Frame):
 
 
         # ThridMajorSizer.Add(cancelBtn)
-        pushBtn.Bind(wx.EVT_BUTTON, self.doPush)
-        pullBtn.Bind(wx.EVT_BUTTON, self.doPull)
+        self.pushBtn.Bind(wx.EVT_BUTTON, self.doPush)
+        self.pullBtn.Bind(wx.EVT_BUTTON, self.doPull)
+        self.pushBtn.Disable()
+        self.pullBtn.Disable()
         saveBtn.Bind(wx.EVT_BUTTON, self.applyChange)
+        connectBtn.Bind(wx.EVT_BUTTON, self.connectSSH)
 
         ArchSizer.Add(FirstMajorSizer)
         ArchSizer.Add(warpStaticSizer, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
@@ -142,7 +149,7 @@ class TestGUIFrame(wx.Frame):
 
         #deal with connection
         self.sshClient = Sync.Synchronizer(self.allDef)
-        self.sshClient.connect()
+
 
     def readFromJson(self, SSHDetail):
         host = SSHDetail['host']  # Server ip address
@@ -201,7 +208,22 @@ class TestGUIFrame(wx.Frame):
             (numDir, numFile) = self.sshClient.doDownload(self.mainChocieBook.RemoteEntry.GetValue(),
                                       self.mainChocieBook.LocalEntry.GetValue())
             print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
-
+    def connectSSH(self, event):
+        if not self.sshClient.isActive():
+            try:
+                # Create an SSH client and attempt to connect
+                print(f"connecting to {self.sshClient.username}@{self.sshClient.host}")
+                self.sshClient.connect()
+                if (self.sshClient.isActive()):
+                    print(f"Successfully Connected to {self.sshClient.username}@{self.sshClient.host}")
+                    self.pullBtn.Enable()
+                    self.pushBtn.Enable()
+            except paramiko.ssh_exception.SSHException as e:
+                print(str(e))
+            except socket.error as e:
+                print("Socket error:", str(e))
+        else:
+            print(f"Connection to {self.sshClient.username}@{self.sshClient.host} already established!")
 
 class menuChoiceBook(wx.Choicebook):
     def __init__(self, parent, log, JsonData):

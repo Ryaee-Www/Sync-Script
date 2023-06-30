@@ -113,8 +113,8 @@ class TestGUIFrame(wx.Frame):
         # SecondMajorSizer.Add(mainChocieBook,flag = wx.EXPAND)
         # confirm reject sizer
         ThridMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
-        saveBtn = wx.Button(panel, label="Apply")
 
+        self.saveBtn = wx.Button(panel, label="Apply")
         self.pushBtn = wx.Button(panel, label="push")
         self.pullBtn = wx.Button(panel, label="pull")
         self.connectBtn = wx.Button(panel, label = "connect")
@@ -122,7 +122,7 @@ class TestGUIFrame(wx.Frame):
         # cancelBtn = wx.Button(panel, label = "Cancel")
         # cancelBtn.Bind(wx.EVT_BUTTON,self.closeWindow)
 
-        ThridMajorSizer.Add(saveBtn, flag=wx.RIGHT, border=5)
+        ThridMajorSizer.Add(self.saveBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.pushBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.pullBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.connectBtn, flag=wx.RIGHT, border=5)
@@ -139,7 +139,7 @@ class TestGUIFrame(wx.Frame):
         self.pullBtn.Bind(wx.EVT_BUTTON, self.doPull)
         self.pushBtn.Disable()
         self.pullBtn.Disable()
-        saveBtn.Bind(wx.EVT_BUTTON, self.applyChange)
+        self.saveBtn.Bind(wx.EVT_BUTTON, self.applyChange)
         self.connectBtn.Bind(wx.EVT_BUTTON, self.connectSSH)
         self.disconnectBtn.Bind(wx.EVT_BUTTON, self.disconnectSSH)
         self.disconnectBtn.Disable()
@@ -158,6 +158,7 @@ class TestGUIFrame(wx.Frame):
         #deal with connection
         self.sshClient = Sync.Synchronizer(self.allDef)
         self.Bind(wx.EVT_CLOSE, self.onClose)
+        self.sshThread = None
 
 
     def readFromJson(self, SSHDetail):
@@ -192,7 +193,9 @@ class TestGUIFrame(wx.Frame):
             self.allDef["password"] = self.getPassword()
             with open(f"{CURRENT_DIRECTORY}\\config.json", 'w') as SSHRaw:
                 SSHRaw.write(json.dumps(self.allDef, indent=2))
+            self.disconnectSSH(self)
             self.sshClient = Sync.Synchronizer(self.allDef)
+
 
     def onClose(self,event):
         if(self.sshThread is not None):
@@ -228,19 +231,22 @@ class TestGUIFrame(wx.Frame):
         self.pushBtn.Enable()
         self.connectBtn.Disable()
         self.disconnectBtn.Enable()
+        self.saveBtn.Disable()
 
     def disconnectSSH(self, event):
-        self.sshThread.stop()
-        self.sshThread.join()
-        if not (self.sshClient.isActive()):
-            print("Successfully closed connection")
+        if self.sshThread is not None:
+            self.sshThread.stop()
+            self.sshThread.join()
+            if not (self.sshClient.isActive()):
+                print("Successfully closed connection")
 
-            self.connectBtn.Enable()
-            self.pullBtn.Disable()
-            self.pushBtn.Disable()
-            self.disconnectBtn.Disable()
-        else:
-            print("Error closing connection, the connection may not be closed")
+                self.connectBtn.Enable()
+                self.pullBtn.Disable()
+                self.pushBtn.Disable()
+                self.disconnectBtn.Disable()
+                self.saveBtn.Enable()
+            else:
+                print("Error closing connection, the connection may not be closed")
         # self.sshThread.join()
 
 

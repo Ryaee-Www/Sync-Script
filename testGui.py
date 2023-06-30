@@ -1,3 +1,4 @@
+import threading
 import wx
 import string
 import os
@@ -6,6 +7,8 @@ from wx.core import BoxSizer, EXPAND, HORIZONTAL, LEFT, NB_FIXEDWIDTH, Right, Si
 import Sync
 import paramiko
 import socket
+import time
+import programThread
 
 allTags = ["Space Engineer", "SE Blue Prints", "Stellaris", "ST MOD", "Skyrim", "Civ V", "Banished"]
 MEMORY_INDEX_NAME = 0
@@ -24,6 +27,7 @@ class Log:
 class TestGUIFrame(wx.Frame):
     def __init__(self):#TODO notice change not applied
         super().__init__(parent=None, title='test GUI')
+
         # self.SetSize((460,250))
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
         font.SetPointSize(9)
@@ -113,14 +117,16 @@ class TestGUIFrame(wx.Frame):
 
         self.pushBtn = wx.Button(panel, label="push")
         self.pullBtn = wx.Button(panel, label="pull")
-        connectBtn = wx.Button(panel, label = "connect")
+        self.connectBtn = wx.Button(panel, label = "connect")
+        self.disconnectBtn = wx.Button(panel, label = "disconnect")
         # cancelBtn = wx.Button(panel, label = "Cancel")
         # cancelBtn.Bind(wx.EVT_BUTTON,self.closeWindow)
 
         ThridMajorSizer.Add(saveBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.pushBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.pullBtn, flag=wx.RIGHT, border=5)
-        ThridMajorSizer.Add(connectBtn, flag=wx.RIGHT, border=5)
+        ThridMajorSizer.Add(self.connectBtn, flag=wx.RIGHT, border=5)
+        ThridMajorSizer.Add(self.disconnectBtn, flag=wx.RIGHT, border=5)
 
         warpStaticBox = wx.StaticBox(panel, label = "preset",style = wx.BORDER_STATIC)
         warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
@@ -134,7 +140,9 @@ class TestGUIFrame(wx.Frame):
         self.pushBtn.Disable()
         self.pullBtn.Disable()
         saveBtn.Bind(wx.EVT_BUTTON, self.applyChange)
-        connectBtn.Bind(wx.EVT_BUTTON, self.connectSSH)
+        self.connectBtn.Bind(wx.EVT_BUTTON, self.connectSSH)
+        self.disconnectBtn.Bind(wx.EVT_BUTTON, self.disconnectSSH)
+        self.disconnectBtn.Disable()
 
         ArchSizer.Add(FirstMajorSizer)
         ArchSizer.Add(warpStaticSizer, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
@@ -149,6 +157,7 @@ class TestGUIFrame(wx.Frame):
 
         #deal with connection
         self.sshClient = Sync.Synchronizer(self.allDef)
+        self.Bind(wx.EVT_CLOSE, self.onClose)
 
 
     def readFromJson(self, SSHDetail):
@@ -183,12 +192,16 @@ class TestGUIFrame(wx.Frame):
             self.allDef["password"] = self.getPassword()
             with open(f"{CURRENT_DIRECTORY}\\config.json", 'w') as SSHRaw:
                 SSHRaw.write(json.dumps(self.allDef, indent=2))
-            self.sshClient.disconnect()
             self.sshClient = Sync.Synchronizer(self.allDef)
-            self.sshClient.connect()
-    def closeWindow(self, event):
-        self.sshClient.disconnect()
-        self.Close(True)
+
+    def onClose(self,event):
+        if(self.sshThread is not None):
+            if self.sshThread.is_alive():
+                self.sshThread.stop()  # Stop the SSH thread gracefully
+                self.sshThread.join()  # Wait for the thread to finish
+            else:
+                self.sshThread = None
+        self.Destroy()
 
     def doPush(self, event):
         # TODO: change to upload file
@@ -209,21 +222,27 @@ class TestGUIFrame(wx.Frame):
                                       self.mainChocieBook.LocalEntry.GetValue())
             print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
     def connectSSH(self, event):
-        if not self.sshClient.isActive():
-            try:
-                # Create an SSH client and attempt to connect
-                print(f"connecting to {self.sshClient.username}@{self.sshClient.host}")
-                self.sshClient.connect()
-                if (self.sshClient.isActive()):
-                    print(f"Successfully Connected to {self.sshClient.username}@{self.sshClient.host}")
-                    self.pullBtn.Enable()
-                    self.pushBtn.Enable()
-            except paramiko.ssh_exception.SSHException as e:
-                print(str(e))
-            except socket.error as e:
-                print("Socket error:", str(e))
+        self.sshThread = programThread.SSHThread(self)
+        self.sshThread.start()
+        self.pullBtn.Enable()
+        self.pushBtn.Enable()
+        self.connectBtn.Disable()
+        self.disconnectBtn.Enable()
+
+    def disconnectSSH(self, event):
+        self.sshThread.stop()
+        self.sshThread.join()
+        if not (self.sshClient.isActive()):
+            print("Successfully closed connection")
+
+            self.connectBtn.Enable()
+            self.pullBtn.Disable()
+            self.pushBtn.Disable()
+            self.disconnectBtn.Disable()
         else:
-            print(f"Connection to {self.sshClient.username}@{self.sshClient.host} already established!")
+            print("Error closing connection, the connection may not be closed")
+        # self.sshThread.join()
+
 
 class menuChoiceBook(wx.Choicebook):
     def __init__(self, parent, log, JsonData):
@@ -473,8 +492,14 @@ class menuChoiceBook(wx.Choicebook):
         self.optionCount+=1
         self.AddPage(self.win, "create New Preset")
 
+
+
+
 if __name__ == '__main__':
+
     app = wx.App()
     log = Log()
     frame = TestGUIFrame()
+
     app.MainLoop()
+

@@ -113,7 +113,7 @@ class TestGUIFrame(wx.Frame):
 
         # ** choice book class init
         # SecondMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.mainChocieBook = menuChoiceBook(panelMain, log, jsonData)
+        self.mainChoiceBook = menuChoiceBook(panelMain, log, jsonData)
         # SecondMajorSizer.Add(mainChocieBook,flag = wx.EXPAND)
         # confirm reject sizer
         ThridMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -134,7 +134,7 @@ class TestGUIFrame(wx.Frame):
 
         warpStaticBox = wx.StaticBox(panelMain, label = "preset",style = wx.BORDER_STATIC)
         warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
-        warpStaticSizer.Add(self.mainChocieBook)
+        warpStaticSizer.Add(self.mainChoiceBook)
         #warpStaticSizer.Add(ThridMajorSizer)
 
 
@@ -157,7 +157,7 @@ class TestGUIFrame(wx.Frame):
         self.readFromJson(jsonData)
         self.SetInitialSize((480, 360))
 
-        self.mainChocieBook.win.Show()
+        self.mainChoiceBook.win.Show()
         self.Show()
         self.Center()
         #finished initialize window
@@ -219,7 +219,7 @@ class TestGUIFrame(wx.Frame):
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         if (dlg.ShowModal() == wx.ID_YES):
-            (numDir, numFile) = self.sshClient.doUpload(self.mainChocieBook.LocalEntry.GetValue(), self.mainChocieBook.RemoteEntry.GetValue())
+            (numDir, numFile) = self.sshClient.doUpload(self.mainChoiceBook.LocalEntry.GetValue(), self.mainChoiceBook.RemoteEntry.GetValue())
             print(f"Upload complete. From {numDir} directories pulled {numFile} files.")
 
     def doPull(self, event):
@@ -228,8 +228,8 @@ class TestGUIFrame(wx.Frame):
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         if (dlg.ShowModal() == wx.ID_YES):
-            (numDir, numFile) = self.sshClient.doDownload(self.mainChocieBook.RemoteEntry.GetValue(),
-                                      self.mainChocieBook.LocalEntry.GetValue())
+            (numDir, numFile) = self.sshClient.doDownload(self.mainChoiceBook.RemoteEntry.GetValue(),
+                                                          self.mainChoiceBook.LocalEntry.GetValue())
             print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
     def connectSSH(self, event):
         self.sshThread = programThread.SSHThread(self)

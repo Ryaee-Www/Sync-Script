@@ -256,11 +256,20 @@ class TestGUIFrame(wx.Frame):
                 self.pushBtn.Disable()
                 self.disconnectBtn.Disable()
                 self.saveBtn.Enable()
+
             else:
                 self.panelLog.print("Error closing connection, the connection may not be closed")
+                #self.sshThread.join()
         else:
             self.panelLog.print("No thread running.")
         # self.sshThread.join()
+
+    def _unExpectedDisconnect_(self):
+        self.connectBtn.Enable()
+        self.pullBtn.Disable()
+        self.pushBtn.Disable()
+        self.disconnectBtn.Disable()
+        self.saveBtn.Enable()
 
 
 class menuChoiceBook(wx.Choicebook):

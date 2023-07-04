@@ -20,25 +20,28 @@ class SSHThread(threading.Thread):
                 if (self.isConnected):
                     self.log.print(f"Successfully Connected to {self.parent.sshClient.username}@{self.parent.sshClient.host}")
 
-                while self.isConnected and not self._stop_.is_set():
+                while self.isConnected:
                     if not self.parent.sshClient.isActive():
                         self.isConnected = False
                         self.log.print("Connection disconnected!")
+                        self.parent._unExpectedDisconnect_()
+                    elif(self._stop_.is_set()):
 
+                        self.parent.sshClient.disconnect()
+
+                        self.isConnected = False
+                        #self.log.print("Stop signaled!")
                     else:
                         time.sleep(1)
-                if(self._stop_.is_set()):
-                    self.log.print("Stop signaled!")
-                    self.parent.sshClient.disconnect()
 
 
 
             except paramiko.ssh_exception.SSHException as e:
                 self.log.print(str(e))
             except socket.error as e:
-                self.log.print("Socket error:", str(e))
+                self.log.print(f"Socket error:{str(e)}")
             except Exception as e:
-                self.log.print("ExpectionT: ", str(e))
+                self.log.print(f"ExpectionT:{str(e)}")
 
         else:
             self.log.print(f"Connection to {self.parent.sshClient.username}@{self.parent.sshClient.host} already established!")

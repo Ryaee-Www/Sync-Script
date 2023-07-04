@@ -1,5 +1,6 @@
 import threading
 import wx
+import wx.lib.agw.flatnotebook as fnb
 import string
 import os
 import json
@@ -28,7 +29,6 @@ class TestGUIFrame(wx.Frame):
     def __init__(self):#TODO notice change not applied
         super().__init__(parent=None, title='test GUI')
 
-        # self.SetSize((460,250))
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
         font.SetPointSize(9)
         self.currentDirectory = CURRENT_DIRECTORY
@@ -51,9 +51,13 @@ class TestGUIFrame(wx.Frame):
             with open(f"{self.currentDirectory}\\config.json") as SSHRaw:
                 json.dump(content,SSHRaw)
 
+        #ToolBar initialize
+        self.toolbar = fnb.FlatNotebook(self, agwStyle=fnb.FNB_NO_X_BUTTON)
+
         #start initialize window
-        panel = wx.Panel(self)
+        panelMain = wx.Panel(self)
         self.log = log
+        self.toolbar.AddPage(panelMain, "Synchronizer")
 
 
         ArchSizer = wx.BoxSizer(wx.VERTICAL)
@@ -63,10 +67,10 @@ class TestGUIFrame(wx.Frame):
         ##ServerIp, userName, timeOut instruction:
         FirstRowColumn1 = wx.BoxSizer(wx.VERTICAL)
         # serverIP Instruction
-        serverIPInst = wx.StaticText(panel, -1, "Server IP: ")
+        serverIPInst = wx.StaticText(panelMain, -1, "Server IP: ")
         serverIPInst.SetFont(font)
         # userName Instruction
-        userNameInst = wx.StaticText(panel, -1, "Username: ")
+        userNameInst = wx.StaticText(panelMain, -1, "Username: ")
         userNameInst.SetFont(font)
 
         FirstRowColumn1.Add(serverIPInst, flag=wx.TOP, border=3)
@@ -74,8 +78,8 @@ class TestGUIFrame(wx.Frame):
 
         ##ServerIP, userName, timeOut EntryBox:
         FirstRowColumn2 = wx.BoxSizer(wx.VERTICAL)
-        self.serverIPEntry = wx.TextCtrl(panel)
-        self.userNameEntry = wx.TextCtrl(panel)
+        self.serverIPEntry = wx.TextCtrl(panelMain)
+        self.userNameEntry = wx.TextCtrl(panelMain)
         self.serverIPEntry.SetSize(120, -1)
         self.userNameEntry.SetSize(120, -1)
         FirstRowColumn2.Add(self.serverIPEntry, flag=wx.TOP | wx.BOTTOM, border=10)
@@ -84,10 +88,10 @@ class TestGUIFrame(wx.Frame):
         ##Port, password instruction:
         FirstRowColumn3 = wx.BoxSizer(wx.VERTICAL)
         # Port Instruction
-        portInst = wx.StaticText(panel, -1, "Server port: ")
+        portInst = wx.StaticText(panelMain, -1, "Server port: ")
         portInst.SetFont(font)
         # password Instruction
-        passwordInst = wx.StaticText(panel, -1, "Password: ")
+        passwordInst = wx.StaticText(panelMain, -1, "Password: ")
         passwordInst.SetFont(font)
 
         FirstRowColumn3.Add(portInst, flag=wx.TOP, border=3)
@@ -95,8 +99,8 @@ class TestGUIFrame(wx.Frame):
 
         ##Port, password EntryBox:
         FirstRowColumn4 = wx.BoxSizer(wx.VERTICAL)
-        self.portEntry = wx.TextCtrl(panel)
-        self.passwordEntry = wx.TextCtrl(panel, style=wx.TE_PASSWORD)
+        self.portEntry = wx.TextCtrl(panelMain)
+        self.passwordEntry = wx.TextCtrl(panelMain, style=wx.TE_PASSWORD)
         self.portEntry.SetSize((120, -1))
         self.passwordEntry.SetSize((120, -1))
         FirstRowColumn4.Add(self.portEntry, flag=wx.TOP | wx.BOTTOM, border=10)
@@ -109,16 +113,16 @@ class TestGUIFrame(wx.Frame):
 
         # ** choice book class init
         # SecondMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.mainChocieBook = menuChoiceBook(panel, log, jsonData)
+        self.mainChocieBook = menuChoiceBook(panelMain, log, jsonData)
         # SecondMajorSizer.Add(mainChocieBook,flag = wx.EXPAND)
         # confirm reject sizer
         ThridMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.saveBtn = wx.Button(panel, label="Apply")
-        self.pushBtn = wx.Button(panel, label="push")
-        self.pullBtn = wx.Button(panel, label="pull")
-        self.connectBtn = wx.Button(panel, label = "connect")
-        self.disconnectBtn = wx.Button(panel, label = "disconnect")
+        self.saveBtn = wx.Button(panelMain, label="Apply")
+        self.pushBtn = wx.Button(panelMain, label="push")
+        self.pullBtn = wx.Button(panelMain, label="pull")
+        self.connectBtn = wx.Button(panelMain, label = "connect")
+        self.disconnectBtn = wx.Button(panelMain, label = "disconnect")
         # cancelBtn = wx.Button(panel, label = "Cancel")
         # cancelBtn.Bind(wx.EVT_BUTTON,self.closeWindow)
 
@@ -128,7 +132,7 @@ class TestGUIFrame(wx.Frame):
         ThridMajorSizer.Add(self.connectBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.disconnectBtn, flag=wx.RIGHT, border=5)
 
-        warpStaticBox = wx.StaticBox(panel, label = "preset",style = wx.BORDER_STATIC)
+        warpStaticBox = wx.StaticBox(panelMain, label = "preset",style = wx.BORDER_STATIC)
         warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
         warpStaticSizer.Add(self.mainChocieBook)
         #warpStaticSizer.Add(ThridMajorSizer)
@@ -148,11 +152,14 @@ class TestGUIFrame(wx.Frame):
         ArchSizer.Add(warpStaticSizer, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
         ArchSizer.Add(ThridMajorSizer, flag=wx.ALIGN_LEFT | wx.BOTTOM | wx.LEFT, border=10)
 
-        panel.SetSizer(ArchSizer)
+        panelMain.SetSizerAndFit(ArchSizer)
         ArchSizer.SetSizeHints(self)
         self.readFromJson(jsonData)
+        self.SetInitialSize((480, 360))
+
         self.mainChocieBook.win.Show()
         self.Show()
+        self.Center()
         #finished initialize window
 
         #deal with connection

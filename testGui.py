@@ -10,6 +10,7 @@ import paramiko
 import socket
 import time
 import programThread
+import logPanel
 
 allTags = ["Space Engineer", "SE Blue Prints", "Stellaris", "ST MOD", "Skyrim", "Civ V", "Banished"]
 MEMORY_INDEX_NAME = 0
@@ -53,11 +54,12 @@ class TestGUIFrame(wx.Frame):
 
         #ToolBar initialize
         self.toolbar = fnb.FlatNotebook(self, agwStyle=fnb.FNB_NO_X_BUTTON)
-
         #start initialize window
         panelMain = wx.Panel(self)
+        self.panelLog = logPanel.LogPanel(self)
         self.log = log
-        self.toolbar.AddPage(panelMain, "Synchronizer")
+        self.toolbar.AddPage(panelMain, "Sync")
+        self.toolbar.AddPage(self.panelLog, "Log")
 
 
         ArchSizer = wx.BoxSizer(wx.VERTICAL)
@@ -220,7 +222,7 @@ class TestGUIFrame(wx.Frame):
                                wx.YES_NO | wx.ICON_INFORMATION)
         if (dlg.ShowModal() == wx.ID_YES):
             (numDir, numFile) = self.sshClient.doUpload(self.mainChoiceBook.LocalEntry.GetValue(), self.mainChoiceBook.RemoteEntry.GetValue())
-            print(f"Upload complete. From {numDir} directories pulled {numFile} files.")
+            self.panelLog.print(f"Upload complete. From {numDir} directories pulled {numFile} files.")
 
     def doPull(self, event):
         # TODO: change to download file
@@ -230,9 +232,9 @@ class TestGUIFrame(wx.Frame):
         if (dlg.ShowModal() == wx.ID_YES):
             (numDir, numFile) = self.sshClient.doDownload(self.mainChoiceBook.RemoteEntry.GetValue(),
                                                           self.mainChoiceBook.LocalEntry.GetValue())
-            print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
+            self.panelLog.print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
     def connectSSH(self, event):
-        self.sshThread = programThread.SSHThread(self)
+        self.sshThread = programThread.SSHThread(self,self.panelLog)
         self.sshThread.start()
         self.pullBtn.Enable()
         self.pushBtn.Enable()
@@ -241,11 +243,13 @@ class TestGUIFrame(wx.Frame):
         self.saveBtn.Disable()
 
     def disconnectSSH(self, event):
+        self.panelLog.print("Attempt shutting down ssh connection...")
         if self.sshThread is not None:
+            self.panelLog.print("Attempt stopping thread...")
             self.sshThread.stop()
             self.sshThread.join()
             if not (self.sshClient.isActive()):
-                print("Successfully closed connection")
+                self.panelLog.print("Successfully closed connection")
 
                 self.connectBtn.Enable()
                 self.pullBtn.Disable()
@@ -253,7 +257,9 @@ class TestGUIFrame(wx.Frame):
                 self.disconnectBtn.Disable()
                 self.saveBtn.Enable()
             else:
-                print("Error closing connection, the connection may not be closed")
+                self.panelLog.print("Error closing connection, the connection may not be closed")
+        else:
+            self.panelLog.print("No thread running.")
         # self.sshThread.join()
 
 
@@ -358,7 +364,7 @@ class menuChoiceBook(wx.Choicebook):
     # update menu book
     def OnPageChanged(self, event):
         self.currentSelection = event.GetSelection()
-        print(f"IDonPageChange: {event.GetSelection()}")
+        #print(f"IDonPageChange: {event.GetSelection()}")
         if(self.currentSelection == self.optionCount):#if create new
             self.RemoteEntry.Clear()
             self.LocalEntry.Clear()
@@ -420,7 +426,7 @@ class menuChoiceBook(wx.Choicebook):
                                'Do you want to save the modification?\nNotice that this will modify the configs.',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
-        print(self.currentSelection, self.optionCount)
+        #print(self.currentSelection, self.optionCount)
 
         if (dlg.ShowModal() == wx.ID_YES):
             if (self.currentSelection == self.optionCount):

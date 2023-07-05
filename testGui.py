@@ -17,6 +17,9 @@ MEMORY_INDEX_NAME = 0
 MEMORY_INDEX_REMOTE = 1
 MEMORY_INDEX_LOCAL = 2
 CURRENT_DIRECTORY = os.getcwd()
+TEMP_WINDOW_SIZE = (455, 385)
+
+
 class Log:
     def WriteText(self, text):
         if text[-1:] == '\n':
@@ -27,7 +30,7 @@ class Log:
 
 
 class TestGUIFrame(wx.Frame):
-    def __init__(self):#TODO notice change not applied
+    def __init__(self):  # TODO notice change not applied
         super().__init__(parent=None, title='test GUI')
 
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
@@ -50,29 +53,80 @@ class TestGUIFrame(wx.Frame):
                 }
             }
             with open(f"{self.currentDirectory}\\config.json") as SSHRaw:
-                json.dump(content,SSHRaw)
+                json.dump(content, SSHRaw)
 
-        #ToolBar initialize
-        self.toolbar = fnb.FlatNotebook(self, agwStyle=fnb.FNB_NO_X_BUTTON)
-        #start initialize window
-        panelMain = wx.Panel(self)
-        self.panelLog = logPanel.LogPanel(self)
-        self.log = log
-        self.toolbar.AddPage(panelMain, "Sync")
-        self.toolbar.AddPage(self.panelLog, "Log")
+        # # start initialize window
 
+        # Major Panel, entire window
+        archPanel = wx.Panel(self)
+        # Major sizer, entire page
+        panelSizer = wx.BoxSizer(wx.VERTICAL)
 
-        ArchSizer = wx.BoxSizer(wx.VERTICAL)
+        # Top toolbar
+        self.toolbar, self.syncPage, self.logPage = self._createToolBar_(archPanel)
+        # toolbar goes in Major sizer
+        panelSizer.Add(self.toolbar)
 
+        # Major sizer for Sync page
+        syncPageSizer = wx.BoxSizer(wx.VERTICAL)
+
+        # First sub-sizer init, respond to Sync page panel (ssh connect)
+        FirstMajorSizer = self._createFirstSizer_(self.syncPage, font)
+        # First sub-sizer, goes in syncPage
+        syncPageSizer.Add(FirstMajorSizer)
+
+        # Second sub-sizer init, respond to syncPage (menu book for all preset, warped sizer)
+        SecondMajorSizer = self._createSecondSizer_(self.syncPage)
+        # choiceBook init, respond to syncPage
+        self.mainChoiceBook = menuChoiceBook(self.syncPage, log, jsonData)
+        # choiceBook goes in second sizer
+        SecondMajorSizer.Add(self.mainChoiceBook)
+        # Second sub-sizer goes in sync page
+        syncPageSizer.Add(SecondMajorSizer, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
+
+        # Third sub-sizer init, respond to main panel (application control, connect, push pull etc)
+        ThirdMajorSizer = self._createThirdSizer_(archPanel)
+        # Third sub-sizer goes in Main Panel
+        panelSizer.Add(ThirdMajorSizer, flag=wx.ALIGN_LEFT | wx.BOTTOM | wx.LEFT, border=10)
+
+        syncPageSizer.SetSizeHints(self)
+        self.SetInitialSize(TEMP_WINDOW_SIZE)
+        self.syncPage.SetSizerAndFit(syncPageSizer)
+        archPanel.SetSizerAndFit(panelSizer)
+        self.readFromJson(jsonData)
+
+        self.mainChoiceBook.win.Show()
+        self.Show()
+        self.Center()
+        # finished initialize window
+
+        # deal with connection
+        self.sshClient = Sync.Synchronizer(self.allDef)
+        self.Bind(wx.EVT_CLOSE, self.onClose)
+        self.sshThread = None
+
+    def _createToolBar_(self, panel):
+        toolbar = fnb.FlatNotebook(panel, agwStyle=fnb.FNB_NO_X_BUTTON)
+        # Sync page panel
+        syncPage = wx.Panel(toolbar)
+        # Log page panel
+        logPage = logPanel.LogPanel(toolbar)
+        #self.log = log
+        # add page to toolbar
+        toolbar.AddPage(syncPage, "Sync")
+        toolbar.AddPage(logPage, "Log")
+        return toolbar, syncPage, logPage
+
+    def _createFirstSizer_(self, panel, font):
         FirstMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         ##ServerIp, userName, timeOut instruction:
         FirstRowColumn1 = wx.BoxSizer(wx.VERTICAL)
         # serverIP Instruction
-        serverIPInst = wx.StaticText(panelMain, -1, "Server IP: ")
+        serverIPInst = wx.StaticText(panel, -1, "Server IP: ")
         serverIPInst.SetFont(font)
         # userName Instruction
-        userNameInst = wx.StaticText(panelMain, -1, "Username: ")
+        userNameInst = wx.StaticText(panel, -1, "Username: ")
         userNameInst.SetFont(font)
 
         FirstRowColumn1.Add(serverIPInst, flag=wx.TOP, border=3)
@@ -80,8 +134,8 @@ class TestGUIFrame(wx.Frame):
 
         ##ServerIP, userName, timeOut EntryBox:
         FirstRowColumn2 = wx.BoxSizer(wx.VERTICAL)
-        self.serverIPEntry = wx.TextCtrl(panelMain)
-        self.userNameEntry = wx.TextCtrl(panelMain)
+        self.serverIPEntry = wx.TextCtrl(panel)
+        self.userNameEntry = wx.TextCtrl(panel)
         self.serverIPEntry.SetSize(120, -1)
         self.userNameEntry.SetSize(120, -1)
         FirstRowColumn2.Add(self.serverIPEntry, flag=wx.TOP | wx.BOTTOM, border=10)
@@ -90,10 +144,10 @@ class TestGUIFrame(wx.Frame):
         ##Port, password instruction:
         FirstRowColumn3 = wx.BoxSizer(wx.VERTICAL)
         # Port Instruction
-        portInst = wx.StaticText(panelMain, -1, "Server port: ")
+        portInst = wx.StaticText(panel, -1, "Server port: ")
         portInst.SetFont(font)
         # password Instruction
-        passwordInst = wx.StaticText(panelMain, -1, "Password: ")
+        passwordInst = wx.StaticText(panel, -1, "Password: ")
         passwordInst.SetFont(font)
 
         FirstRowColumn3.Add(portInst, flag=wx.TOP, border=3)
@@ -101,8 +155,8 @@ class TestGUIFrame(wx.Frame):
 
         ##Port, password EntryBox:
         FirstRowColumn4 = wx.BoxSizer(wx.VERTICAL)
-        self.portEntry = wx.TextCtrl(panelMain)
-        self.passwordEntry = wx.TextCtrl(panelMain, style=wx.TE_PASSWORD)
+        self.portEntry = wx.TextCtrl(panel)
+        self.passwordEntry = wx.TextCtrl(panel, style=wx.TE_PASSWORD)
         self.portEntry.SetSize((120, -1))
         self.passwordEntry.SetSize((120, -1))
         FirstRowColumn4.Add(self.portEntry, flag=wx.TOP | wx.BOTTOM, border=10)
@@ -112,19 +166,23 @@ class TestGUIFrame(wx.Frame):
         FirstMajorSizer.Add(FirstRowColumn2, flag=wx.RIGHT, border=10)
         FirstMajorSizer.Add(FirstRowColumn3, flag=wx.LEFT | wx.RIGHT | wx.TOP, border=10)
         FirstMajorSizer.Add(FirstRowColumn4, flag=wx.RIGHT, border=10)
+        return FirstMajorSizer
 
-        # ** choice book class init
-        # SecondMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.mainChoiceBook = menuChoiceBook(panelMain, log, jsonData)
-        # SecondMajorSizer.Add(mainChocieBook,flag = wx.EXPAND)
-        # confirm reject sizer
+    def _createSecondSizer_(self, panel):
+
+        warpStaticBox = wx.StaticBox(panel, label="preset", style=wx.BORDER_STATIC)
+        warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
+        #warpStaticSizer.Add(self.mainChoiceBook)
+
+        return warpStaticSizer
+
+    def _createThirdSizer_(self, panel):
         ThridMajorSizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.saveBtn = wx.Button(panelMain, label="Apply")
-        self.pushBtn = wx.Button(panelMain, label="push")
-        self.pullBtn = wx.Button(panelMain, label="pull")
-        self.connectBtn = wx.Button(panelMain, label = "connect")
-        self.disconnectBtn = wx.Button(panelMain, label = "disconnect")
+        self.saveBtn = wx.Button(panel, label="Apply")
+        self.pushBtn = wx.Button(panel, label="push")
+        self.pullBtn = wx.Button(panel, label="pull")
+        self.connectBtn = wx.Button(panel, label="connect")
+        self.disconnectBtn = wx.Button(panel, label="disconnect")
         # cancelBtn = wx.Button(panel, label = "Cancel")
         # cancelBtn.Bind(wx.EVT_BUTTON,self.closeWindow)
 
@@ -133,12 +191,6 @@ class TestGUIFrame(wx.Frame):
         ThridMajorSizer.Add(self.pullBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.connectBtn, flag=wx.RIGHT, border=5)
         ThridMajorSizer.Add(self.disconnectBtn, flag=wx.RIGHT, border=5)
-
-        warpStaticBox = wx.StaticBox(panelMain, label = "preset",style = wx.BORDER_STATIC)
-        warpStaticSizer = wx.StaticBoxSizer(warpStaticBox, wx.VERTICAL)
-        warpStaticSizer.Add(self.mainChoiceBook)
-        #warpStaticSizer.Add(ThridMajorSizer)
-
 
         # ThridMajorSizer.Add(cancelBtn)
         self.pushBtn.Bind(wx.EVT_BUTTON, self.doPush)
@@ -149,26 +201,7 @@ class TestGUIFrame(wx.Frame):
         self.connectBtn.Bind(wx.EVT_BUTTON, self.connectSSH)
         self.disconnectBtn.Bind(wx.EVT_BUTTON, self.disconnectSSH)
         self.disconnectBtn.Disable()
-
-        ArchSizer.Add(FirstMajorSizer)
-        ArchSizer.Add(warpStaticSizer, flag=wx.EXPAND | wx.RIGHT | wx.LEFT | wx.TOP, border=10)
-        ArchSizer.Add(ThridMajorSizer, flag=wx.ALIGN_LEFT | wx.BOTTOM | wx.LEFT, border=10)
-
-        panelMain.SetSizerAndFit(ArchSizer)
-        ArchSizer.SetSizeHints(self)
-        self.readFromJson(jsonData)
-        self.SetInitialSize((480, 360))
-
-        self.mainChoiceBook.win.Show()
-        self.Show()
-        self.Center()
-        #finished initialize window
-
-        #deal with connection
-        self.sshClient = Sync.Synchronizer(self.allDef)
-        self.Bind(wx.EVT_CLOSE, self.onClose)
-        self.sshThread = None
-
+        return ThridMajorSizer
 
     def readFromJson(self, SSHDetail):
         host = SSHDetail['host']  # Server ip address
@@ -180,6 +213,7 @@ class TestGUIFrame(wx.Frame):
         self.portEntry.write(str(port))
         self.userNameEntry.write(username)
         self.passwordEntry.write(password)
+
     def getServerIP(self):
         return self.serverIPEntry.GetValue()
 
@@ -191,11 +225,12 @@ class TestGUIFrame(wx.Frame):
 
     def getPassword(self):
         return self.passwordEntry.GetValue()
+
     def applyChange(self, event):
         dlg = wx.MessageDialog(self, f'Confirm update?\nNotice that this will not change save files path',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
-        if(dlg.ShowModal()== wx.ID_YES):
+        if (dlg.ShowModal() == wx.ID_YES):
             self.allDef["host"] = self.getServerIP()
             self.allDef["username"] = self.getUserName()
             self.allDef["port"] = int(self.getPort())
@@ -205,9 +240,8 @@ class TestGUIFrame(wx.Frame):
             self.disconnectSSH(self)
             self.sshClient = Sync.Synchronizer(self.allDef)
 
-
-    def onClose(self,event):
-        if(self.sshThread is not None):
+    def onClose(self, event):
+        if (self.sshThread is not None):
             if self.sshThread.is_alive():
                 self.sshThread.stop()  # Stop the SSH thread gracefully
                 self.sshThread.join()  # Wait for the thread to finish
@@ -216,25 +250,27 @@ class TestGUIFrame(wx.Frame):
         self.Destroy()
 
     def doPush(self, event):
-        # TODO: change to upload file
+
         dlg = wx.MessageDialog(self, 'working in progress, do test',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         if (dlg.ShowModal() == wx.ID_YES):
-            (numDir, numFile) = self.sshClient.doUpload(self.mainChoiceBook.LocalEntry.GetValue(), self.mainChoiceBook.RemoteEntry.GetValue())
-            self.panelLog.print(f"Upload complete. From {numDir} directories pulled {numFile} files.")
+            (numDir, numFile) = self.sshClient.doUpload(self.mainChoiceBook.LocalEntry.GetValue(),
+                                                        self.mainChoiceBook.RemoteEntry.GetValue())
+            self.logPage.print(f"Upload complete. From {numDir} directories pulled {numFile} files.")
 
     def doPull(self, event):
-        # TODO: change to download file
+
         dlg = wx.MessageDialog(self, f'working in progress, do test',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
         if (dlg.ShowModal() == wx.ID_YES):
             (numDir, numFile) = self.sshClient.doDownload(self.mainChoiceBook.RemoteEntry.GetValue(),
                                                           self.mainChoiceBook.LocalEntry.GetValue())
-            self.panelLog.print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
+            self.logPage.print(f"Download Complete. From {numDir} directories pulled {numFile} files.")
+
     def connectSSH(self, event):
-        self.sshThread = programThread.SSHThread(self,self.panelLog)
+        self.sshThread = programThread.SSHThread(self, self.logPage)
         self.sshThread.start()
         self.pullBtn.Enable()
         self.pushBtn.Enable()
@@ -243,13 +279,13 @@ class TestGUIFrame(wx.Frame):
         self.saveBtn.Disable()
 
     def disconnectSSH(self, event):
-        self.panelLog.print("Attempt shutting down ssh connection...")
+        self.logPage.print("Attempt shutting down ssh connection...")
         if self.sshThread is not None:
-            self.panelLog.print("Attempt stopping thread...")
+            self.logPage.print("Attempt stopping thread...")
             self.sshThread.stop()
             self.sshThread.join()
             if not (self.sshClient.isActive()):
-                self.panelLog.print("Successfully closed connection")
+                self.logPage.print("Successfully closed connection")
 
                 self.connectBtn.Enable()
                 self.pullBtn.Disable()
@@ -258,10 +294,10 @@ class TestGUIFrame(wx.Frame):
                 self.saveBtn.Enable()
 
             else:
-                self.panelLog.print("Error closing connection, the connection may not be closed")
-                #self.sshThread.join()
+                self.logPage.print("Error closing connection, the connection may not be closed")
+                # self.sshThread.join()
         else:
-            self.panelLog.print("No thread running.")
+            self.logPage.print("No thread running.")
         # self.sshThread.join()
 
     def _unExpectedDisconnect_(self):
@@ -275,19 +311,21 @@ class TestGUIFrame(wx.Frame):
 class menuChoiceBook(wx.Choicebook):
     def __init__(self, parent, log, JsonData):
         wx.Choicebook.__init__(self, parent)
-        self.optionCount = 0 #how many presets present in the menu
+        self.optionCount = 0  # how many presets present in the menu
         self.log = log
-        self.JsonData = JsonData #Json Data
-        self.currentSelection = 0 #record current index choosen, int
+        self.JsonData = JsonData  # Json Data
+        self.currentSelection = 0  # record current index choosen, int
         self.initFromJson(self.JsonData)
         self.win = wx.Panel(self)
 
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
         font.SetPointSize(9)
 
-
         PanelSizer = BoxSizer(wx.HORIZONTAL)
         LeftSizer = BoxSizer(wx.VERTICAL)
+
+        NameInst = wx.StaticText(self.win, -1, label="Preset Name: ")
+        NameInst.SetFont(font)
 
         RemoteInst = wx.StaticText(self.win, -1, label="Remote Directory: ")
         RemoteInst.SetFont(font)
@@ -295,15 +333,21 @@ class menuChoiceBook(wx.Choicebook):
         LocalInst = wx.StaticText(self.win, -1, label="Local Directory: ")
         LocalInst.SetFont(font)
 
-        LeftSizer.Add(RemoteInst, flag=wx.TOP, border=3)
-        LeftSizer.Add(LocalInst, flag=wx.TOP, border=16)
+        LeftSizer.Add(NameInst, flag=wx.TOP, border=5)
+        LeftSizer.Add(RemoteInst, flag=wx.TOP, border=15)
+        LeftSizer.Add(LocalInst, flag=wx.TOP, border=15)
+
 
         RightSizer = BoxSizer(wx.VERTICAL)
+        self.NameEntry = wx.TextCtrl(self.win)
         self.RemoteEntry = wx.TextCtrl(self.win)
         self.LocalEntry = wx.TextCtrl(self.win)
 
-        RightSizer.Add(self.RemoteEntry, flag=wx.EXPAND)
+
+        RightSizer.Add(self.NameEntry, flag=wx.EXPAND)
+        RightSizer.Add(self.RemoteEntry, flag=wx.TOP | wx.EXPAND, border=10)
         RightSizer.Add(self.LocalEntry, flag=wx.TOP | wx.EXPAND, border=10)
+
         TwinBtnSizer = BoxSizer(wx.HORIZONTAL)
         # Create and bind buttons
         fileBrowserBtn = wx.Button(self.win, label="Browse")
@@ -321,7 +365,6 @@ class menuChoiceBook(wx.Choicebook):
         PanelSizer.Add(RightSizer, flag=wx.EXPAND | wx.RIGHT, border=10)
         self.win.SetSizer(PanelSizer)
 
-
         self.RemoteEntry.write(JsonData['directory'][0]['remote'])
         self.LocalEntry.write(JsonData['directory'][0]['local'])
         # Now make a bunch of panels for the choice book
@@ -332,7 +375,6 @@ class menuChoiceBook(wx.Choicebook):
 
         self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGING, self.OnPageChanging)
         self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGED, self.OnPageChanged)
-
 
     def initFromJson(self, JsonData):
         self.memoryData = []
@@ -373,8 +415,8 @@ class menuChoiceBook(wx.Choicebook):
     # update menu book
     def OnPageChanged(self, event):
         self.currentSelection = event.GetSelection()
-        #print(f"IDonPageChange: {event.GetSelection()}")
-        if(self.currentSelection == self.optionCount):#if create new
+        # print(f"IDonPageChange: {event.GetSelection()}")
+        if (self.currentSelection == self.optionCount):  # if create new
             self.RemoteEntry.Clear()
             self.LocalEntry.Clear()
         else:
@@ -386,8 +428,8 @@ class menuChoiceBook(wx.Choicebook):
     # update menu book changing...
     def OnPageChanging(self, event):
 
-        if (event.GetSelection() >= self.optionCount ):#newpage
-            #TODO now this if always trigger modify popup, change memdata to have dummy page
+        if (event.GetSelection() >= self.optionCount):  # newpage
+            # TODO now this if always trigger modify popup, change memdata to have dummy page
             dlg = wx.MessageDialog(self,
                                    'Do you want to save the new preset?\nNotice that this will not modify the config file.',
                                    'Notice',
@@ -396,9 +438,9 @@ class menuChoiceBook(wx.Choicebook):
                 self.memoryData.append(["name", self.RemoteEntry.GetValue(), self.LocalEntry.GetValue()])
                 self.saveFileNoPop(None)
 
-        elif(self.memoryData[event.GetOldSelection()][MEMORY_INDEX_REMOTE] != self.RemoteEntry.GetValue() or
-                self.memoryData[event.GetOldSelection()][MEMORY_INDEX_LOCAL] != self.LocalEntry.GetValue()):
-                #page changed
+        elif (self.memoryData[event.GetOldSelection()][MEMORY_INDEX_REMOTE] != self.RemoteEntry.GetValue() or
+              self.memoryData[event.GetOldSelection()][MEMORY_INDEX_LOCAL] != self.LocalEntry.GetValue()):
+            # page changed
 
             dlg = wx.MessageDialog(self,
                                    'Do you want to save the modification?\nNotice that this will not modify the config file.',
@@ -407,16 +449,13 @@ class menuChoiceBook(wx.Choicebook):
             if (dlg.ShowModal() == wx.ID_YES):
                 self.saveFileNoPop(None)
 
-        else:#memory == textbox
+        else:  # memory == textbox
 
             self.memoryData[event.GetOldSelection()][MEMORY_INDEX_REMOTE] = self.RemoteEntry.GetValue()
             self.memoryData[event.GetOldSelection()][MEMORY_INDEX_LOCAL] = self.LocalEntry.GetValue()
 
-
-
         # self.log.WriteText("Saved: %s and %s" %(self.memoryData[event.GetSelection()][MEMORY_INDEX_REMOTE],
         # self.memoryData[event.GetSelection()][1]))
-
 
     def browseFile(self, event):
         dlg = wx.DirDialog(None, "Choose input directory", "",
@@ -435,7 +474,7 @@ class menuChoiceBook(wx.Choicebook):
                                'Do you want to save the modification?\nNotice that this will modify the configs.',
                                'Notice',
                                wx.YES_NO | wx.ICON_INFORMATION)
-        #print(self.currentSelection, self.optionCount)
+        # print(self.currentSelection, self.optionCount)
 
         if (dlg.ShowModal() == wx.ID_YES):
             if (self.currentSelection == self.optionCount):
@@ -447,7 +486,7 @@ class menuChoiceBook(wx.Choicebook):
                 self.JsonData['directory'].append(newPreset)
                 self.saveChange()
                 self.updateMemory()
-                self.log.WriteText(f"Saved: {self.RemoteEntry.GetValue()} and {self.LocalEntry.GetValue()}" )
+                self.log.WriteText(f"Saved: {self.RemoteEntry.GetValue()} and {self.LocalEntry.GetValue()}")
                 # update memory data
 
 
@@ -467,6 +506,7 @@ class menuChoiceBook(wx.Choicebook):
                     self.JsonData['directory'][0]['local'] = self.memoryData[0][MEMORY_INDEX_LOCAL]
                     self.log.WriteText("Saved: %s and %s" % (self.memoryData[0][MEMORY_INDEX_REMOTE],
                                                              self.memoryData[0][MEMORY_INDEX_LOCAL]))
+
     def saveFileNoPop(self, event):
         if (self.currentSelection == self.optionCount):
             newPreset = {
@@ -477,14 +517,16 @@ class menuChoiceBook(wx.Choicebook):
             self.JsonData['directory'].append(newPreset)
             self.saveChange()
             self.updateMemory()
-            self.log.WriteText(f"Saved: {self.RemoteEntry.GetValue()} and {self.LocalEntry.GetValue()}" )
+            self.log.WriteText(f"Saved: {self.RemoteEntry.GetValue()} and {self.LocalEntry.GetValue()}")
             # update memory data
 
 
         else:
             try:
-                self.JsonData['directory'][self.currentSelection]['remote'] = self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE]
-                self.JsonData['directory'][self.currentSelection]['local'] = self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]
+                self.JsonData['directory'][self.currentSelection]['remote'] = self.memoryData[self.currentSelection][
+                    MEMORY_INDEX_REMOTE]
+                self.JsonData['directory'][self.currentSelection]['local'] = self.memoryData[self.currentSelection][
+                    MEMORY_INDEX_LOCAL]
                 self.log.WriteText("Saved: %s and %s" % (
                     self.memoryData[self.currentSelection][MEMORY_INDEX_REMOTE],
                     self.memoryData[self.currentSelection][MEMORY_INDEX_LOCAL]))
@@ -494,6 +536,7 @@ class menuChoiceBook(wx.Choicebook):
                 self.JsonData['directory'][0]['local'] = self.memoryData[0][MEMORY_INDEX_LOCAL]
                 self.log.WriteText("Saved: %s and %s" % (self.memoryData[0][MEMORY_INDEX_REMOTE],
                                                          self.memoryData[0][MEMORY_INDEX_LOCAL]))
+
     def saveAllFile(self, event):
         dlg = wx.MessageDialog(self,
                                'Do you want to save the modification?\nNotice that this will not modify the config file.',
@@ -517,17 +560,13 @@ class menuChoiceBook(wx.Choicebook):
             self.JsonData = jsonData
         self.initFromJson(self.JsonData)
         self.SetPageText(self.optionCount, self.JsonData['directory'][self.optionCount]['name'])
-        self.optionCount+=1
+        self.optionCount += 1
         self.AddPage(self.win, "create New Preset")
 
 
-
-
 if __name__ == '__main__':
-
     app = wx.App()
     log = Log()
     frame = TestGUIFrame()
 
     app.MainLoop()
-

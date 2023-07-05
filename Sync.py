@@ -56,27 +56,7 @@ class Synchronizer:
                 sftp.put(lPath, rPath)
         sftp.close()
         return((numDir,numFile))
-        #for root, dirs, files in os.walk(localDir):
-            #remote_root = RemoteDir + root.replace(localDir, '').replace('\\', '/')
-            #for directory in dirs:
-                #remote_directory = os.path.join(remote_root, directory)
-                #sftp.mkdir(remote_directory)
-            #for file in files:
-                #local_path = os.path.join(root, file)
-                #remote_path = os.path.join(remote_root, file)
-                #sftp.put(local_path, remote_path)
-        '''
 
-        newZip = zipfile.ZipFile(localDir, mode='w')
-        try:
-            self.__addFile__(newZip, SSHDetail['sourceDir'], len(SSHDetail['sourceDir']))
-            print("All compression succeed, closing file")
-            newZip.close()
-            self.__uploadFile__(localDir)
-        except Exception:
-            print("Difficulty encounter, closing file \n**The compression might not be completed as it was expected**")
-            newZip.close()
-        '''
     def doDownload(self,RemoteDir, localDir):
         numDir = 0
         numFile = 0
@@ -100,23 +80,6 @@ class Synchronizer:
         sftp.close()
         return((numDir,numFile))
 
-
-
-    def __uploadFile__(self, sourceFile):
-
-        print("opening connection to %s\nClaiming user %s" % (self.host, self.username))
-        self.ssh_client.connect(self.host, self.port, self.username, self.password)
-        scpclient = SCPClient(self.ssh_client.get_transport(), socket_timeout=15.0)
-
-        try:
-            print("uploading file to %s" % self.destDir)
-            scpclient.put(sourceFile, self.destDir)
-        except FileNotFoundError as e:
-            print(e)
-            print("File not found: %s" % sourceFile)
-        else:
-            print("upload Successful")
-        self.ssh_client.close()
 
     def __addFile__(self, newZip, sourceLoc, lengthBaseRoot):
         allFile = os.listdir(sourceLoc)
